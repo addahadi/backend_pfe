@@ -5,7 +5,6 @@ let sql;
 if (!global._sql) {
   const connectionString = process.env.SUPABASE_DB_URL;
 
-
   global._sql = postgres(connectionString, {
     max: 10,
     idle_timeout: 20,
@@ -14,7 +13,6 @@ if (!global._sql) {
 
   console.log('Database connection pool created');
 }
-
 
 sql = global._sql;
 
