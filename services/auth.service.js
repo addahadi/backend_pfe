@@ -4,8 +4,7 @@ import bcrypt from "bcrypt";
 // استيراد مكتبة إنشاء JWT tokens
 import jwt from "jsonwebtoken";
 
-// استيراد uuid لإنشاء معرف فريد لكل مستخدم
-import { v4 as uuidv4 } from "uuid";
+
 
 // استيراد الاتصال بقاعدة البيانات
 import sql from "../config/database.js";
@@ -36,19 +35,17 @@ export const register = async ({ name, email, password }) => {
   // الرقم 10 هو مستوى التشفير (salt rounds)
 
 
-  // -----------------------------
-  // 3️⃣ إنشاء id فريد للمستخدم
-  // -----------------------------
-  const userId = uuidv4();
-
-
+  
   // -----------------------------
   // 4️⃣ حفظ المستخدم في قاعدة البيانات
   // -----------------------------
   await sql`
-    INSERT INTO users (id,name,email,password)
-    VALUES (${userId}, ${name}, ${email}, ${hashedPassword})
+    INSERT INTO users (name,email,password)
+    VALUES (${name}, ${email}, ${hashedPassword})
+    RETURNING id 
   `;
+   // استخراج id الذي أنشأته قاعدة البيانات
+  const userId = newUser[0].id;
 
 
   // -----------------------------
