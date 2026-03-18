@@ -1,5 +1,5 @@
 // استيراد مكتبة Zod للتحقق من البيانات (Validation)
-import { z } from 'zod';
+import { email, z } from 'zod';
 
 /*
 Register Schema
@@ -51,5 +51,15 @@ export const registerSchema = z.object({
   password: z.string().min(6, 'password must be at least 6 characters'),
 });
 
+export const loginShema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
 
+/*
+التحقق من refresh token القادم من المستخدم
+*/
 
+export const refreshSchema = z.object({
+  refreshToken: z.string(),
+});
