@@ -6,7 +6,7 @@ Defines API endpoints for authentication.
 
 import express from 'express';
 
-import { login, register, verify } from '../controllers/auth.controller.js';
+import { addFeature, createPlan, getPlans, login, register, verify } from '../controllers/auth.controller.js';
 import { validate } from '../middelwares/validate.js';
 import { loginShema } from '../schemas/auth.schema.js';
 
@@ -14,6 +14,7 @@ import { registerSchema } from '../schemas/auth.schema.js';
 import { refresh } from '../controllers/auth.controller.js';
 import { refreshSchema } from '../schemas/auth.schema.js';
 import verifyToken from '../middelwares/verfytToken.js';
+import { createPlanShema, featureSchema } from '../schemas/auth.schema.js';
 
 const router = express.Router();
 
@@ -39,4 +40,9 @@ router.post('/refresh', validate(refreshSchema), refresh);
 //هذا endpoint يستخدم للتأكد أن access token صالح
 
 router.get('/verify', verifyToken, verify);
+//
+router.post('plans',validate(createPlanShema),createPlan);
+router.post('/features',validate(featureSchema),addFeature);
+router.get('plans',getPlans);
+
 export default router;

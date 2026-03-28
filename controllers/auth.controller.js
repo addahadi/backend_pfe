@@ -7,7 +7,9 @@ Controller يستقبل request
 Handles HTTP request.
 */
 
+import { tr } from 'zod/locales';
 import * as authService from '../services/auth.service.js';
+import * as planService from '../services/plan.service.js';
 
 export const register = async (req, res, next) => {
   try {
@@ -53,4 +55,36 @@ export const verify = (req, res) => {
     message: 'Token valid',
     user: req.user,
   });
+};
+
+
+// 
+export const createPlan = async (req,res,next)=> {
+try{
+const result = await planService.createPlan(req,body);
+res.status(201).json(result);
+} catch(error){
+  next(error);
+}
+};
+//
+export const addFeature= async (req,res,next) =>{
+try {
+  const result = await planService.addFeature(req.body);
+  res.status(201).json(result);
+
+}catch (error){
+  next(error);
+}
+
+};
+//
+export const getPlans = async(req,res,next )=> {
+  try{
+    const result = await planService.getPlans();
+    res.json(result);
+
+  } catch (error){
+    next(eror);
+  }
 };
