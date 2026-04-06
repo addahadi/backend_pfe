@@ -7,154 +7,199 @@ import jwt from 'jsonwebtoken';
 // استيراد الاتصال بقاعدة البيانات
 import sql from '../config/database.js';
 
-// دالة التسجيل (Register Service)
+// UUID
+import crypto from 'crypto';
+
+/*
+========================
+REGISTER
+========================
+*/
 export const register = async ({ name, email, password }) => {
-  // -----------------------------
-  // 1️⃣ التحقق إذا كان البريد الإلكتروني موجود مسبقاً
-  // -----------------------------
+  // 1️⃣ check email
   const users = await sql`
     SELECT id FROM users WHERE email = ${email}
   `;
 
-  // إذا وجدنا مستخدم بنفس البريد الإلكتروني نرجع خطأ
   if (users.length > 0) {
-    const error = new Error('Email already exists');
-    error.statusCode = 400;
-    throw error;
+    throw new Error('Email already exists');
   }
 
-  // -----------------------------
-  // 2️⃣ تشفير كلمة المرور قبل حفظها في قاعدة البيانات
-  // -----------------------------
+  // 2️⃣ hash password
   const hashedPassword = await bcrypt.hash(password, 10);
-  // الرقم 10 هو مستوى التشفير (salt rounds)
 
-  // -----------------------------
-  // 4️⃣ حفظ المستخدم في قاعدة البيانات
-  // -----------------------------
-  await sql`
+  // 3️⃣ create user
+  const newUser = await sql`
     INSERT INTO users (name,email,password)
     VALUES (${name}, ${email}, ${hashedPassword})
-    RETURNING id 
+    RETURNING id, role
   `;
-  // استخراج id الذي أنشأته قاعدة البيانات
+
   const userId = newUser[0].id;
 
-  // -----------------------------
-  // 5️⃣ إنشاء Access Token
-  // يستخدم للوصول إلى API
-  // -----------------------------
-  const accessToken = jwt.sign(
-    { userId }, // البيانات داخل التوكن
-    process.env.JWT_SECRET, // المفتاح السري
-    { expiresIn: '15m' } // مدة الصلاحية
-  );
+  // 4️⃣ access token
+  const accessToken = jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
 
-  // -----------------------------
-  // 6️⃣ إنشاء Refresh Token
-  // -----------------------------
+  // 5️⃣ refresh token
   const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-  // -----------------------------
-  // 6.1️⃣ حفظ Refresh Token في قاعدة البيانات
-  // -----------------------------
-  const refreshTokenId = uuidv4();
+  // 6️⃣ hash refresh token
+  const hashedToken = await bcrypt.hash(refreshToken, 10);
+  const refreshTokenId = crypto.randomUUID();
 
   await sql`
-INSERT INTO refresh_tokens (id, user_id, token, expires_at)
-VALUES (
-  ${refreshTokenId},
-  ${userId},
-  ${refreshToken},
-  NOW() + interval '7 days'
-)
-`;
+    INSERT INTO refresh_tokens (id, user_id, token, expires_at)
+    VALUES (
+      ${refreshTokenId},
+      ${userId},
+      ${hashedToken},
+      NOW() + interval '7 days'
+    )
+  `;
 
-  // -----------------------------
-  // 7️⃣ إرجاع بيانات المستخدم + التوكن
-  // -----------------------------
   return {
     user: {
       id: userId,
       name,
       email,
+      role: newUser[0].role,
     },
     accessToken,
     refreshToken,
   };
 };
+
 /*
-هنا يوجد منطق تسجيل الدخول الحقيقي
-
-الخطوات:
-1- البحث عن المستخدم في قاعدة البيانات
-2- مقارنة كلمة المرور
-3- إنشاء access token
-4- إنشاء refresh token
-5- حفظ refresh token في قاعدة البيانات
+========================
+LOGIN
+========================
 */
-
 export const login = async ({ email, password }) => {
-  // البحث عن المستخدم
   const users = await sql`
-SELECT * FROM users WHERE email = ${email}
+    SELECT * FROM users WHERE email = ${email}
+  `;
 
-`;
-  // البحث عن المستخدم
   if (!users.length) {
     throw new Error('User not found');
   }
+
   const user = users[0];
-  // مقارنة كلمة المرور المدخلة مع المشفرة
+
   const validPassword = await bcrypt.compare(password, user.password);
 
   if (!validPassword) {
     throw new Error('Invalid credentials');
   }
-  // مقارنة كلمة المرور المدخلة مع المشفرة
+
+  // access token
   const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_ACCESS_SECRET, {
     expiresIn: '15m',
   });
 
-  // إنشاء refresh token (مدة طويلة)
-  const refreshtokens = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET, {
+  // refresh token
+  const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: '7d',
   });
-  // إنشاء refresh token (مدة طويلة)
-  await sql`
 
-UPDATE users 
-SET refresh_token = ${refreshtokens}
-WHERE id = ${user.id}
-`;
-  // إرسال النتيجة
+  // hash refresh token
+  const hashedToken = await bcrypt.hash(refreshToken, 10);
+  const refreshTokenId = crypto.randomUUID();
+
+  await sql`
+    INSERT INTO refresh_tokens (id, user_id, token, expires_at)
+    VALUES (
+      ${refreshTokenId},
+      ${user.id},
+      ${hashedToken},
+      NOW() + interval '7 days'
+    )
+  `;
+
   return {
     accessToken,
-    refreshtokens,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
+      role: user.role,
     },
   };
 };
 
 /*
-هذه الدالة تنشئ access token جديد
-باستخدام refresh token
+========================
+REFRESH
+========================
 */
-
 export const refresh = async (refreshToken) => {
   try {
-    // التحقق من صحة refresh token
+    // 1️⃣ verify JWT
     const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    // إنشاء access token جديد
+    // 2️⃣ get all user tokens
+    const tokens = await sql`
+      SELECT * FROM refresh_tokens 
+      WHERE user_id = ${payload.userId}
+    `;
+
+    let validToken = null;
+
+    // 3️⃣ compare hashed tokens
+    for (const t of tokens) {
+      const isMatch = await bcrypt.compare(refreshToken, t.token);
+      if (isMatch) {
+        validToken = t;
+        break;
+      }
+    }
+
+    if (!validToken) {
+      throw new Error('Invalid refresh token');
+    }
+
+    // 4️⃣ check expiration
+    if (new Date(validToken.expires_at) < new Date()) {
+      throw new Error('Refresh token expired');
+    }
+
+    // 5️⃣ create new access token
     const accessToken = jwt.sign({ userId: payload.userId }, process.env.JWT_ACCESS_SECRET, {
       expiresIn: '15m',
     });
 
     return { accessToken };
   } catch (error) {
-    throw new Error('Invalid refresh token');
+    throw new Error(error.message);
   }
+};
+
+/*
+========================
+LOGOUT
+========================
+*/
+export const logout = async (refreshToken) => {
+  const tokens = await sql`
+    SELECT * FROM refresh_tokens
+  `;
+
+  let tokenId = null;
+
+  for (const t of tokens) {
+    const isMatch = await bcrypt.compare(refreshToken, t.token);
+    if (isMatch) {
+      tokenId = t.id;
+      break;
+    }
+  }
+
+  if (!tokenId) {
+    throw new Error('Token not found');
+  }
+
+  await sql`
+    DELETE FROM refresh_tokens WHERE id = ${tokenId}
+  `;
+
+  return { message: 'Logged out successfully' };
 };

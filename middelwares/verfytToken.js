@@ -10,6 +10,10 @@ export default function verifyToken(req, res, next) {
   if (!authHeader) {
     return res.status(401).json({ message: 'Token required' });
   }
+  // 2️⃣ تحقق من format: Bearer TOKEN
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Invalid token format' });
+  }
 
   const token = authHeader.split(' ')[1];
 

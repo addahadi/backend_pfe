@@ -64,17 +64,10 @@ export const refreshSchema = z.object({
   refreshToken: z.string(),
 });
 
- // 
-  export const createPlanShema = z.object({
-name : z.string().min(2),
-price : z.number(),
-duration : z.number(),
-type : z.enum(['USER','COMPANY']),
-  });
-
-  //
-export const featureSchema = z.object({
-planId : z.number(),
-key : z.string(),
-value : z.string(),
+//
+export const createPlanShema = z.object({
+  name: z.string().min(2),
+  price: z.number(),
+  duration: z.number(),
+  type: z.enum(['USER', 'COMPANY']),
 });
