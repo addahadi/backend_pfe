@@ -1,36 +1,18 @@
 {
-  "name": "backend_pfe",
+  "name": "service-externe",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
-    "lint": "eslint .",
-    "prettier": "prettier --write ."
+    "start": "node app.js",
+    "dev": "nodeman app.js"
   },
-  "keywords": [],
-  "author": "adda hadi",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.1",
-    "cors": "^2.8.5",
-    "dotenv": "^17.3.1",
+    "@supabase/supabase-js": "^2.101.1",
+    "axios": "^1.14.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.0",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^7.0.12",
-    "pg": "^8.16.3",
-    "postgres": "^3.4.7",
-    "zod": "^4.2.1"
-  },
-  "devDependencies": {
-    "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.5.4",
-    "nodemon": "^3.1.11",
-    "prettier": "^3.7.4"
+    "nodemailer": "^8.0.5",
+    "pdfkit": "^0.18.0"
   }
 }
