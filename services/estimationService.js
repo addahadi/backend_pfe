@@ -1,16 +1,17 @@
 const supabase = require('../supabaseClient'); 
 const { getExchangeSettings } = require('./exchangeService');
-
+console.log("Type of function:", typeof getExchangeSettings);
 const calculateCategory = async (data) => {
     try {
         const { budget_type, category_name, materials = [], services = [] } = data;
         
         const settings = await getExchangeSettings();
-        if (!settings || !settings.usd_to_dzd_base_rate) {
+        console.log("Settings Received:", settings);
+        if (!settings || !settings.official_rate) {
              throw new Error("Taux de change non disponible");
         }
 
-        const rate = settings.usd_to_dzd_base_rate;
+        const rate = settings.official_rate;
         const marketFactor = settings.market_factor || 1.7; 
 
         const priceKey = budget_type === 'optimiste' ? 'min_price_usd' : 
@@ -105,5 +106,47 @@ const calculateCategory = async (data) => {
         throw err;
     }
 };
+const createAndSaveEstimation = async (data) => {
+    try {
+        // 1. تشغيل عملية الحساب (دالتك الأصلية)
+        const calculation = await calculateCategory(data);
 
-module.exports = { calculateCategory };
+        // 2. الحفظ في الجدول الرئيسي (public.estimation)
+        const { data: savedEst, error: estErr } = await supabase
+            .from('estimation')
+            .insert([{
+                project_id: data.project_id,
+                budget_type: data.budget_type,
+                total_budget: calculation.summary.grand_total
+            }])
+            .select().single();
+
+        if (estErr) throw estErr;
+
+        // 3. الحفظ في جدول التفاصيل (public.estimation_detail_material)
+        // قمنا بمطابقة الأسماء مع صور سوبابيز التي أرسلتِها
+        const materialsToSave = calculation.details
+            .filter(item => item.type === 'material')
+            .map(mat => ({
+                estimation_id: savedEst.estimation_id, // الربط مع الأب
+                material_id: mat.id, 
+                quantity: mat.quantity,
+                applied_waste_factor: mat.waste_factor || 0, 
+                exchange_rate_snapshot: calculation.category_info.exchange_rate,
+                sub_total: mat.total_item_dzd
+            }));
+
+        if (materialsToSave.length > 0) {
+            await supabase.from('estimation_detail_material').insert(materialsToSave);
+        }
+
+        return savedEst;
+    } catch (err) {
+        console.error("❌ فشل توزيع البيانات على الجداول:", err.message);
+        throw err;
+    }
+};
+
+module.exports = { calculateCategory,
+createAndSaveEstimation
+ };

@@ -8,11 +8,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
-    "axios": "^1.14.0",
+    "axios": "^1.15.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "zod": "^4.3.6"
   }
 }

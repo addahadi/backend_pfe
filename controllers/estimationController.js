@@ -1,3 +1,4 @@
+const { estimationSchema } = require('../schemas/estimation.schema');
 const estimationService = require('../services/estimationService');
 const { generatePDF } = require('../services/pdfService');
 const { sendEmail } = require('../services/emailService');
@@ -5,10 +6,22 @@ const { sendEmail } = require('../services/emailService');
 // حساب تصنيف معين (Category)
 const calculateCategory = async (req, res) => {
     try {
-        const result = await estimationService.calculateCategory(req.body);
+        // 1. التحقق من البيانات باستعمال Zod
+        const validatedData = estimationSchema.parse(req.body);
+        
+        // 2. بعث البيانات المحققة للـ service
+        const result = await estimationService.calculateCategory(validatedData);
+        
         res.status(200).json(result);
     } catch (error) {
         console.error("❌ Error in calculateCategory:", error.message);
+        
+        // 3. إذا كان المشكل في الـ Validation (Zod)
+        if (error.errors) {
+            return res.status(400).json({ success: false, errors: error.errors });
+        }
+        
+        // 4. أي خطأ آخر من السيرفر
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -43,9 +56,43 @@ const sendEmailController = async (req, res) => {
         res.status(500).json({ success: false, message: "Error sending email" });
     }
 };
+// --- إضافة الوظيفة المطلوبة في العقد (حفظ في قاعدة البيانات) ---
+const createProjectEstimation = async (req, res) => {
+    try {
+        const { project_id, budget_type } = req.body;
 
+        // 1. التحقق من البيانات المطلوبة حسب العقد
+        if (!project_id || !budget_type) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "project_id et budget_type obligatoires" 
+            });
+        }
+
+        // 2. مناداة الـ Service للحساب والحفظ (تأكدي من وجود الفانكشن في الـ service)
+        // سنستخدم validatedData كما فعلتِ في كودك
+        const result = await estimationService.createAndSaveEstimation(req.body);
+
+        // 3. الرد بنفس صيغة الـ Response الموجودة في صورتك (201 Created)
+        res.status(201).json({
+            success: true,
+            estimation_id: result.id, // المعرف الذي يأتي من Supabase
+            project_id: project_id,
+            budget_type: budget_type,
+            created_at: result.created_at
+        });
+
+    } catch (error) {
+        console.error("❌ Error in createProjectEstimation:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// تحديث الـ exports لتشمل الوظيفة الجديدة
 module.exports = { 
     calculateCategory,
     generatePDF: generatePDFController,
-    sendEmail: sendEmailController
+    sendEmail: sendEmailController,
+    createProjectEstimation // أضفناها هنا
 };
+

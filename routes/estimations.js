@@ -5,7 +5,8 @@ const router = express.Router();
 const { 
     calculateCategory, 
     generatePDF, 
-    sendEmail 
+    sendEmail ,
+    createProjectEstimation
 } = require('../controllers/estimationController');
 
 // هادا الرابط هو اللي يحسب كلش (المواد والخدمات والمجموع)
@@ -16,5 +17,7 @@ router.post('/pdf/generate', generatePDF);
 
 // هادا الرابط يبعث الإيميل بناءً على نفس الحسابات
 router.post('/email/send', sendEmail);
+
+router.post('/project/estimation', createProjectEstimation);
 
 module.exports = router;

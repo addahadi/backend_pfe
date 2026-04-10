@@ -1,6 +1,9 @@
  require('dotenv').config();
+ require('./services/cronJobs');
 const express = require('express');
+const errorHandler = require('./services/errorHandler');
 const cors = require('cors');
+
 
 // استدعاء المسارات (Routes)
 const estimationRoutes = require('./routes/estimations');
@@ -27,6 +30,8 @@ app.use('/api/estimations', estimationRoutes);
 app.use('/api/materials', materialRoutes); 
 app.use('/api/services', serviceRoutes);
 app.use('/api/settings', settingRoutes);
+
+app.use(errorHandler);
 
 // 4. معالجة الروابط غير الموجودة
 app.use((req, res) => {
