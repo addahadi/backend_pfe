@@ -1,5 +1,5 @@
 const serviceService = require('../services/serviceService');
-const supabase = require('../supabaseClient');
+const supabase = require('../../supabaseClient');
 
 // 1. جلب كل الخدمات (متوافق مع جدول service_config)
 const getAllServices = async (req, res) => {

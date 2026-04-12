@@ -6,7 +6,7 @@ import verifyToken from '../../middelwares/verfytToken.js';
 import { validate } from '../../middelwares/validate.js';
 
 import { createPlanSchema, updatePlanSchema } from '../../schemas/plan.schema.js';
-import { createPlan, updatePlan, getFeatures, getPlans } from '../../controllers/plans.controller.js';
+import { createPlan, updatePlan, getFeatures, getPlans } from '../../controllers/auth/plans.controller.js';
 
 import router from './auth.route.js';
 

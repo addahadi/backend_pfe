@@ -1,5 +1,5 @@
 const materialService = require('../services/materialService');
-const supabase = require('../supabaseClient'); 
+const supabase = require('../../supabaseClient'); 
 
 // 1. جلب كل المواد
 const getAllMaterials = async (req, res) => {

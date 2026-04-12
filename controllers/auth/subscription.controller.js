@@ -1,5 +1,5 @@
 import * as subscriptionService from '../services/subscription.service.js';
-import { ok, handleError, notFound } from '../utils/http.js';
+import { ok, handleError, notFound } from '../../utils/http.js';
 
 export const create = async (req, res) => {
   try {
