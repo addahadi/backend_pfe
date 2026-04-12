@@ -129,3 +129,4 @@ export async function removeLeaf(req, res) {
     ok(res, await service.removeLeaf(project_details_id));
   } catch (err) { handleError(res, err); }
 }
+

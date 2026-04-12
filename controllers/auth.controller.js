@@ -1,36 +1,73 @@
+/*
+Auth Controller
+
+Controller يستقبل request
+ويرسلها إلى service.
+
+Handles HTTP request.
+*/
+//controller
+import { tr } from 'zod/locales';
 import * as authService from '../services/auth.service.js';
-import { ok, handleError } from '../utils/http.js';
 
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   try {
+    // call service logic
     const result = await authService.register(req.body);
-    ok(res, result, 201);
-  } catch (err) { handleError(res, err); }
+
+    // send response
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const login = async (req, res) => {
+/*
+الـ controller هو الوسيط بين
+route و service
+
+هو يستقبل الطلب ويرسل الرد
+*/
+export const login = async (req, res, next) => {
   try {
+    // ✅ نخرج البيانات من req.body
     const { email, password } = req.body;
+
+    // إرسال البيانات إلى service
     const result = await authService.login({ email, password });
-    ok(res, result);
-  } catch (err) { handleError(res, err); }
+    // إرسال البيانات إلى service
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const refresh = async (req, res) => {
+export const refresh = async (req, res, next) => {
   try {
+    console.log(req.body);
     const result = await authService.refresh(req.body.refreshToken);
-    ok(res, result);
-  } catch (err) { handleError(res, err); }
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const verify = (req, res) => {
-  ok(res, { message: 'Token valid', user: req.user });
+  res.status(200).json({
+    message: 'Token valid',
+    user: req.user,
+  });
 };
-
-export const logout = async (req, res) => {
+//logout
+export const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
+
     const result = await authService.logout(refreshToken);
-    ok(res, result);
-  } catch (err) { handleError(res, err); }
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
 };

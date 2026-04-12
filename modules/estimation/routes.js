@@ -11,6 +11,10 @@ router.get('/categories',               ctrl.getRootCategories);
 router.get('/categories/:id/children',  ctrl.getChildCategories);
 router.get('/categories/:id/leaf',      ctrl.getLeafCategory);
 
+router.get("/", getAllCategories);
+router.get("/tree", getCategoryTree);
+router.get("/:id", getCategoryById);
+
 // Stateless calculation preview
 router.post('/calculate',               ctrl.calculate);
 

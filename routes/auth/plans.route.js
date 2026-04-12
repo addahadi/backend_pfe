@@ -1,12 +1,12 @@
 import express from 'express';
 
-import verifyToken from '../middelwares/verfytToken.js';
+import verifyToken from '../../middelwares/verfytToken.js';
 
 // middleware validation
-import { validate } from '../middelwares/validate.js';
+import { validate } from '../../middelwares/validate.js';
 
-import { createPlanSchema, updatePlanSchema } from '../schemas/plan.schema.js';
-import { createPlan, updatePlan, getFeatures, getPlans } from '../controllers/plans.controller.js';
+import { createPlanSchema, updatePlanSchema } from '../../schemas/plan.schema.js';
+import { createPlan, updatePlan, getFeatures, getPlans } from '../../controllers/plans.controller.js';
 
 import router from './auth.route.js';
 
