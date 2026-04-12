@@ -1,14 +1,8 @@
-// استيراد مكتبة تشفير كلمات المرور
 import bcrypt from 'bcrypt';
-
-// استيراد مكتبة إنشاء JWT tokens
 import jwt from 'jsonwebtoken';
-
-// استيراد الاتصال بقاعدة البيانات
 import sql from '../config/database.js';
-
-// UUID
 import crypto from 'crypto';
+import { ConflictError, AuthError, NotFoundError } from '../utils/AppError.js';
 
 /*
 ========================
@@ -22,7 +16,7 @@ export const register = async ({ name, email, password }) => {
   `;
 
   if (users.length > 0) {
-    throw new Error('Email already exists');
+    throw new ConflictError('Email already exists');
   }
 
   // 2️⃣ hash password
@@ -80,7 +74,7 @@ export const login = async ({ email, password }) => {
   `;
 
   if (!users.length) {
-    throw new Error('User not found');
+    throw new NotFoundError('User not found');
   }
 
   const user = users[0];
@@ -88,7 +82,7 @@ export const login = async ({ email, password }) => {
   const validPassword = await bcrypt.compare(password, user.password);
 
   if (!validPassword) {
-    throw new Error('Invalid credentials');
+    throw new AuthError('Invalid credentials');
   }
 
   // access token
@@ -154,12 +148,12 @@ export const refresh = async (refreshToken) => {
     }
 
     if (!validToken) {
-      throw new Error('Invalid refresh token');
+      throw new AuthError('Invalid refresh token');
     }
 
     // 4️⃣ check expiration
     if (new Date(validToken.expires_at) < new Date()) {
-      throw new Error('Refresh token expired');
+      throw new AuthError('Refresh token expired');
     }
 
     // 5️⃣ create new access token
@@ -194,7 +188,7 @@ export const logout = async (refreshToken) => {
   }
 
   if (!tokenId) {
-    throw new Error('Token not found');
+    throw new NotFoundError('Token not found');
   }
 
   await sql`

@@ -1,5 +1,6 @@
-// استيراد الاتصال بقاعدة البيانات
 import sql from '../config/database.js';
+import { NotFoundError, ConflictError } from '../utils/AppError.js';
+
 /*
 Create Subscription Service
 
@@ -17,7 +18,7 @@ export const createSubscription = async ({ userId, planId }) => {
     `;
 
     if (!plan.length) {
-      throw new Error('Plan not found');
+      throw new NotFoundError('Plan not found');
     }
 
     const selectedPlan = plan[0];
@@ -31,7 +32,7 @@ export const createSubscription = async ({ userId, planId }) => {
     `;
 
     if (existing.length) {
-      throw new Error('You already have this plan');
+      throw new ConflictError('You already have this plan');
     }
 
     // 3️⃣ deactivate old subscriptions

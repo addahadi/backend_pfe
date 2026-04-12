@@ -1,46 +1,30 @@
 import * as planService from '../services/plan.service.js';
+import { ok, handleError, notFound } from '../utils/http.js';
 
-//
-export const createPlan = async (req, res, next) => {
+export const createPlan = async (req, res) => {
   try {
     const result = await planService.createPlan(req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
+    ok(res, result, 201);
+  } catch (err) { handleError(res, err); }
 };
 
-//
-
-export const getPlans = async (req, res, next) => {
+export const getPlans = async (req, res) => {
   try {
     const result = await planService.getPlans();
-    res.json(result);
-  } catch (error) {
-    next(error); // ✅
-  }
+    ok(res, result);
+  } catch (err) { handleError(res, err); }
 };
 
-export const updatePlan = async (req, res, next) => {
+export const updatePlan = async (req, res) => {
   try {
-    const planId = req.params.id;
-
-    const result = await planService.updatePlan(planId, req.body);
-
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
+    const result = await planService.updatePlan(req.params.id, req.body);
+    ok(res, result);
+  } catch (err) { handleError(res, err); }
 };
 
-// controllers/plan.controller.js
-
-export const getFeatures = async (req, res, next) => {
+export const getFeatures = async (req, res) => {
   try {
-    const plan = await planService.getPlanFeatures(req.params.id);
-
-    res.json(plan);
-  } catch (error) {
-    next(error);
-  }
+    const features = await planService.getPlanFeatures(req.params.id);
+    ok(res, features);
+  } catch (err) { handleError(res, err); }
 };

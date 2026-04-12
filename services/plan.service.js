@@ -1,4 +1,5 @@
 import sql from '../config/database.js';
+import { NotFoundError } from '../utils/AppError.js';
 
 // إنشاء Plan
 
@@ -58,7 +59,7 @@ export const updatePlan = async (planId, data) => {
     `;
 
     if (!plan.length) {
-      throw new Error('Plan not found');
+      throw new NotFoundError('Plan not found');
     }
 
     // 2️⃣ update plan
@@ -116,9 +117,7 @@ export const getPlanFeatures = async (planId) => {
 
   // 2️⃣ إذا ماكان حتى feature
   if (features.length === 0) {
-    const error = new Error('No features found for this plan');
-    error.statusCode = 404;
-    throw error;
+    throw new NotFoundError('No features found for this plan');
   }
 
   // 3️⃣ تحويلها إلى object
