@@ -1,37 +1,37 @@
-const supabase = require('../supabaseClient');
+import supabase from '../../supabaseClient.js';
+import { ok, handleError, notFound } from '../../utils/http.js';
+import { ValidationError } from '../../utils/AppError.js';
 
 // 1. جلب الإعدادات الحالية
-const getSettings = async (req, res) => {
+export const getSettings = async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('financial_settings')
             .select('*')
-            .limit(1) // نجيبو أول سطر موجود
+            .limit(1)
             .single();
 
         if (error || !data) {
-            // إذا كان الجدول فارغ أو فيه خطأ، نبعتو قيم افتراضية
-            return res.status(200).json({
-                success: true,
-                data: {
-                    market_factor: 1.7,
-                    usd_to_dzd_base: 225.31,
-                    tax_rate: 0.19 
-                }
+            // قيم افتراضية إذا كان الجدول فارغاً
+            return ok(res, {
+                market_factor: 1.7,
+                usd_to_dzd_base: 225.31,
+                tax_rate: 0.19,
             });
         }
-        res.status(200).json({ success: true, data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+
+        ok(res, data);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
 // 2. تحديث الإعدادات
-const updateSettings = async (req, res) => {
+export const updateSettings = async (req, res) => {
     try {
         const updatedData = req.body;
 
-        // أولاً: لازم نجيبو الـ config_id تاع السطر الوحيد اللي كاين
+        // جلب الـ config_id تاع السطر الوحيد
         const { data: currentSettings } = await supabase
             .from('financial_settings')
             .select('config_id')
@@ -39,23 +39,18 @@ const updateSettings = async (req, res) => {
             .single();
 
         if (!currentSettings) {
-            return res.status(404).json({ success: false, message: "No settings found to update. Please add a row in Supabase first." });
+            return notFound(res, 'No settings found. Please add a row in Supabase first.');
         }
 
         const { data, error } = await supabase
             .from('financial_settings')
             .update(updatedData)
-            .eq('config_id', currentSettings.config_id) // نستعملو الـ ID الحقيقي ماشي رقم 1
+            .eq('config_id', currentSettings.config_id)
             .select();
 
-        if (error) throw error;
-        res.status(200).json({ success: true, message: "Settings updated successfully", data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        ok(res, data[0]);
+    } catch (err) {
+        handleError(res, err);
     }
-};
-
-module.exports = {
-    getSettings,
-    updateSettings
 };

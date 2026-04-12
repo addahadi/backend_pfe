@@ -1,17 +1,18 @@
-const express = require('express');
+import express from 'express';
+import { getAllServices, addService, updateService, deleteService } from '../../controllers/externalService/serviceController.js';
+
 const router = express.Router();
-const serviceController = require('../controllers/serviceController');
 
 // جلب كل خدمات العمالة والتركيب (عرض قائمة التكاليف)
-router.get('/', serviceController.getAllServices);
+router.get('/', getAllServices);
 
 // إضافة خدمة جديدة (مثلاً: أعمال العزل المائي)
-router.post('/', serviceController.addService);
+router.post('/', addService);
 
 // تعديل سعر عامل أو تكلفة معدات في خدمة معينة
-router.put('/:id', serviceController.updateService);
+router.put('/:id', updateService);
 
 // حذف خدمة من القائمة
-router.delete('/:id', serviceController.deleteService);
+router.delete('/:id', deleteService);
 
-module.exports = router;
+export default router;

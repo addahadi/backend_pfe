@@ -13,4 +13,4 @@ const updateSettings = async (newData) => {
     return settings;
 };
 
-module.exports = { getSettings, updateSettings };
+export { getSettings, updateSettings };

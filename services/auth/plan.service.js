@@ -1,5 +1,5 @@
-import sql from '../config/database.js';
-import { NotFoundError } from '../utils/AppError.js';
+import sql from '../../config/database.js';
+import { NotFoundError } from '../../utils/AppError.js';
 
 // إنشاء Plan
 

@@ -1,4 +1,4 @@
-const PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
 
 const generatePDF = (data) => {
     return new Promise((resolve, reject) => {
@@ -28,4 +28,4 @@ const generatePDF = (data) => {
     });
 };
 
-module.exports = { generatePDF };
+export { generatePDF };

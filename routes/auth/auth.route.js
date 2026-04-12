@@ -6,14 +6,10 @@ Defines API endpoints for authentication.
 
 import express from 'express';
 
-import { login, register, verify, logout } from '../controllers/auth.controller.js';
-import { validate } from '../middelwares/validate.js';
-import { loginShema } from '../schemas/auth.schema.js';
-
-import { registerSchema } from '../schemas/auth.schema.js';
-import { refresh } from '../controllers/auth.controller.js';
-import { refreshSchema } from '../schemas/auth.schema.js';
-import verifyToken from '../middelwares/verfytToken.js';
+import { login, register, verify, logout, refresh } from '../../controllers/auth/auth.controller.js';
+import { validate } from '../../middelwares/validate.js';
+import { loginShema, registerSchema, refreshSchema } from '../../schemas/auth.schema.js';
+import verifyToken from '../../middelwares/verfytToken.js';
 
 const router = express.Router();
 

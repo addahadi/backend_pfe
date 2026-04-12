@@ -2,6 +2,7 @@
   "name": "service-externe",
   "version": "1.0.0",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "start": "node app.js",
     "dev": "nodeman app.js"
@@ -9,12 +10,15 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
     "axios": "^1.15.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
     "pdfkit": "^0.18.0",
+    "postgres": "^3.4.9",
     "zod": "^4.3.6"
   }
 }

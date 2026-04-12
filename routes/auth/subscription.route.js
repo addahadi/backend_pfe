@@ -2,16 +2,16 @@
 import express from 'express';
 
 // استيراد controller
-import { create, getMine } from '../controllers/subscription.controller.js';
+import { create, getMine } from '../../controllers/auth/subscription.controller.js';
 
 // middleware التحقق من التوكن
-import verifyToken from '../middelwares/verfytToken.js';
+import verifyToken from '../../middelwares/verfytToken.js';
 
 // middleware validation
-import { validate } from '../middelwares/validate.js';
+import { validate } from '../../middelwares/validate.js';
 
 // schema
-import { createSubscriptionSchema } from '../schemas/subscription.schema.js';
+import { createSubscriptionSchema } from '../../schemas/subscription.schema.js';
 
 const router = express.Router();
 

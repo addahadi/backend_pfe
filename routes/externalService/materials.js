@@ -1,17 +1,18 @@
-const express = require('express');
+import express from 'express';
+import { getAllMaterials, addMaterial, updateMaterial, deleteMaterial } from '../../controllers/externalService/materialController.js';
+
 const router = express.Router();
-const materialController = require('../controllers/materialController');
 
 // جلب كل المواد (يستخدم في عرض جدول الأسعار)
-router.get('/', materialController.getAllMaterials);
+router.get('/', getAllMaterials);
 
 // إضافة مادة جديدة (إذا أردتِ إضافة مادة من واجهة التطبيق مستقبلاً)
-router.post('/', materialController.addMaterial);
+router.post('/', addMaterial);
 
 // تعديل سعر مادة أو اسمها
-router.put('/:id', materialController.updateMaterial);
+router.put('/:id', updateMaterial);
 
 // حذف مادة من القائمة
-router.delete('/:id', materialController.deleteMaterial);
+router.delete('/:id', deleteMaterial);
 
-module.exports = router;
+export default router;

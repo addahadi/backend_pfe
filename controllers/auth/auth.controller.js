@@ -7,8 +7,7 @@ Controller يستقبل request
 Handles HTTP request.
 */
 //controller
-import { tr } from 'zod/locales';
-import * as authService from '../services/auth.service.js';
+import * as authService from '../../services/auth/auth.service.js';
 
 export const register = async (req, res, next) => {
   try {

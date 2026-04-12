@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import sql from '../config/database.js';
+import sql from '../../config/database.js';
 import crypto from 'crypto';
-import { ConflictError, AuthError, NotFoundError } from '../utils/AppError.js';
+import { ConflictError, AuthError, NotFoundError } from '../../utils/AppError.js';
 
 /*
 ========================

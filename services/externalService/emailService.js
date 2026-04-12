@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 const sendEmail = async (to, data) => {
     const transporter = nodemailer.createTransport({
@@ -40,4 +40,4 @@ const sendEmail = async (to, data) => {
     });
 };
 
-module.exports = { sendEmail };
+export { sendEmail };

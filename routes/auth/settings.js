@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import { getSettings, updateSettings } from '../../controllers/externalService/settingsController.js';
+
 const router = express.Router();
-const settingsController = require('../controllers/settingsController');
 
 // جلب الإعدادات الحالية (سعر الصرف، المعامل، الضريبة، إلخ)
-router.get('/', settingsController.getSettings);
+router.get('/', getSettings);
 
 // تحديث الإعدادات (مثلاً إذا ارتفع معامل السوق السوداء لـ 1.8)
-router.put('/', settingsController.updateSettings);
+router.put('/', updateSettings);
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-import * as planService from '../services/plan.service.js';
+import * as planService from '../../services/auth/plan.service.js';
 import { ok, handleError, notFound } from '../../utils/http.js';
 
 export const createPlan = async (req, res) => {

@@ -1,23 +1,23 @@
-const express = require('express');
+import express from 'express';
+import {
+    calculateCategory,
+    generatePDFController as generatePDF,
+    sendEmailController as sendEmail,
+    createProjectEstimation,
+} from '../../controllers/externalService/estimationController.js';
+
 const router = express.Router();
 
-// استوردنا غير الدوال اللي راهي واجدة في الـ Controller
-const { 
-    calculateCategory, 
-    generatePDF, 
-    sendEmail ,
-    createProjectEstimation
-} = require('../controllers/estimationController');
+// حساب التكلفة (المواد + الخدمات + المجموع)
+router.post('/calculate/category', calculateCategory);
 
-// هادا الرابط هو اللي يحسب كلش (المواد والخدمات والمجموع)
-router.post('/calculate/category', calculateCategory); 
-
-// هادا الرابط يصنع الـ PDF بناءً على نفس الحسابات
+// توليد ملف PDF
 router.post('/pdf/generate', generatePDF);
 
-// هادا الرابط يبعث الإيميل بناءً على نفس الحسابات
+// إرسال بريد إلكتروني
 router.post('/email/send', sendEmail);
 
+// حفظ التقدير في قاعدة البيانات
 router.post('/project/estimation', createProjectEstimation);
 
-module.exports = router;
+export default router;

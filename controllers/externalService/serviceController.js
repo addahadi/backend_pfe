@@ -1,50 +1,55 @@
-const serviceService = require('../services/serviceService');
-const supabase = require('../../supabaseClient');
+import * as serviceService from '../../services/externalService/serviceService.js';
+import supabase from '../../supabaseClient.js';
+import { ok, handleError, notFound } from '../../utils/http.js';
+import { ValidationError } from '../../utils/AppError.js';
 
-// 1. جلب كل الخدمات (متوافق مع جدول service_config)
-const getAllServices = async (req, res) => {
+// 1. جلب كل الخدمات
+export const getAllServices = async (req, res) => {
     try {
         const services = await serviceService.getAllServices();
-        res.status(200).json({ success: true, data: services });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        ok(res, services);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
 // 2. إضافة خدمة جديدة
-const addService = async (req, res) => {
+export const addService = async (req, res) => {
     try {
         const newService = req.body;
         const { data, error } = await supabase
             .from('service_config')
-            .insert([newService]);
+            .insert([newService])
+            .select();
 
-        if (error) throw error;
-        res.status(201).json({ success: true, data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        ok(res, data, 201);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
-// 3. تعديل بيانات خدمة (مثل تحديث سعر المانبوور Manpower)
-const updateService = async (req, res) => {
+// 3. تعديل خدمة
+export const updateService = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedData = req.body;
         const { data, error } = await supabase
             .from('service_config')
             .update(updatedData)
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
-        if (error) throw error;
-        res.status(200).json({ success: true, data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        if (!data || data.length === 0) return notFound(res, `Service with id ${id} not found`);
+        ok(res, data[0]);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
 // 4. حذف خدمة
-const deleteService = async (req, res) => {
+export const deleteService = async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase
@@ -52,16 +57,9 @@ const deleteService = async (req, res) => {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
-        res.status(200).json({ success: true, message: "Service deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        ok(res, { message: 'Service deleted successfully' });
+    } catch (err) {
+        handleError(res, err);
     }
-};
-
-module.exports = {
-    getAllServices,
-    addService,
-    updateService,
-    deleteService
 };

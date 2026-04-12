@@ -1,12 +1,23 @@
-require('dotenv').config(); // تأكدي بلي هاد السطر هو الأول
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+// Using a lazy getter so createClient() is called after dotenv has loaded env vars
+let _supabase;
 
-// هاد السطر للتيست برك، باش نشوفو إذا المتغيرات راهم يلحقو
-console.log("Supabase URL Check:", supabaseUrl ? "✅ OK" : "❌ Empty");
+const getSupabase = () => {
+    if (!_supabase) {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        console.log("Supabase URL Check:", supabaseUrl ? "✅ OK" : "❌ Empty");
+        _supabase = createClient(supabaseUrl, supabaseKey);
+    }
+    return _supabase;
+};
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Proxy so callers can still use `supabase.from(...)` directly
+const supabase = new Proxy({}, {
+    get(_, prop) {
+        return getSupabase()[prop];
+    }
+});
 
-module.exports = supabase;
+export default supabase;

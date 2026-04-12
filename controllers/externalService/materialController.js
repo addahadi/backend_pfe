@@ -1,50 +1,55 @@
-const materialService = require('../services/materialService');
-const supabase = require('../../supabaseClient'); 
+import * as materialService from '../../services/externalService/materialService.js';
+import supabase from '../../supabaseClient.js';
+import { ok, handleError, notFound } from '../../utils/http.js';
+import { ValidationError } from '../../utils/AppError.js';
 
 // 1. جلب كل المواد
-const getAllMaterials = async (req, res) => {
+export const getAllMaterials = async (req, res) => {
     try {
         const materials = await materialService.getAllMaterials();
-        res.status(200).json({ success: true, data: materials });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        ok(res, materials);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
 // 2. إضافة مادة جديدة
-const addMaterial = async (req, res) => {
+export const addMaterial = async (req, res) => {
     try {
         const newMaterial = req.body;
         const { data, error } = await supabase
             .from('resource_catalog')
-            .insert([newMaterial]);
+            .insert([newMaterial])
+            .select();
 
-        if (error) throw error;
-        res.status(201).json({ success: true, data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        ok(res, data, 201);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
-// 3. تعديل مادة (تم تصحيح الحقل هنا)
-const updateMaterial = async (req, res) => {
+// 3. تعديل مادة
+export const updateMaterial = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedData = req.body;
         const { data, error } = await supabase
             .from('resource_catalog')
             .update(updatedData)
-            .eq('material_id', id); // تم التغيير من id إلى material_id
+            .eq('material_id', id)
+            .select();
 
-        if (error) throw error;
-        res.status(200).json({ success: true, data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        if (!data || data.length === 0) return notFound(res, `Material with id ${id} not found`);
+        ok(res, data[0]);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
-// 4. حذف مادة (صحيحة)
-const deleteMaterial = async (req, res) => {
+// 4. حذف مادة
+export const deleteMaterial = async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase
@@ -52,16 +57,9 @@ const deleteMaterial = async (req, res) => {
             .delete()
             .eq('material_id', id);
 
-        if (error) throw error;
-        res.status(200).json({ success: true, message: "Material deleted" });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        if (error) throw new ValidationError(error.message);
+        ok(res, { message: 'Material deleted successfully' });
+    } catch (err) {
+        handleError(res, err);
     }
-};
-
-module.exports = {
-    getAllMaterials,
-    addMaterial,
-    updateMaterial,
-    deleteMaterial
 };

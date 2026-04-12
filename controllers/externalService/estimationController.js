@@ -1,33 +1,21 @@
-const { estimationSchema } = require('../schemas/estimation.schema');
-const estimationService = require('../services/externalService/estimationService');
-const { generatePDF } = require('../services/externalService/pdfService');
-const { sendEmail } = require('../services/externalService/emailService');
+import * as estimationService from '../../services/externalService/estimationService.js';
+import { generatePDF } from '../../services/externalService/pdfService.js';
+import { sendEmail } from '../../services/externalService/emailService.js';
+import { ok, handleError } from '../../utils/http.js';
+import { ValidationError } from '../../utils/AppError.js';
 
 // حساب تصنيف معين (Category)
-const calculateCategory = async (req, res) => {
+export const calculateCategory = async (req, res) => {
     try {
-        // 1. التحقق من البيانات باستعمال Zod
-        const validatedData = estimationSchema.parse(req.body);
-
-        // 2. بعث البيانات المحققة للـ service
-        const result = await estimationService.calculateCategory(validatedData);
-
-        res.status(200).json(result);
-    } catch (error) {
-        console.error("❌ Error in calculateCategory:", error.message);
-
-        // 3. إذا كان المشكل في الـ Validation (Zod)
-        if (error.errors) {
-            return res.status(400).json({ success: false, errors: error.errors });
-        }
-
-        // 4. أي خطأ آخر من السيرفر
-        res.status(500).json({ success: false, message: error.message });
+        const result = await estimationService.calculateCategory(req.body);
+        ok(res, result);
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
 // إنشاء ملف PDF
-const generatePDFController = async (req, res) => {
+export const generatePDFController = async (req, res) => {
     try {
         const calculatedData = await estimationService.calculateCategory(req.body);
         const pdfBuffer = await generatePDF(calculatedData);
@@ -35,64 +23,44 @@ const generatePDFController = async (req, res) => {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=estimation.pdf');
         res.send(pdfBuffer);
-    } catch (error) {
-        console.error("❌ PDF Error:", error.message);
-        res.status(500).json({ success: false, message: "Error generating PDF" });
+    } catch (err) {
+        handleError(res, err);
     }
 };
 
 // إرسال الإيميل
-const sendEmailController = async (req, res) => {
+export const sendEmailController = async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(400).json({ message: "Email is required" });
+        if (!email) throw new ValidationError('Email is required');
 
         const calculatedData = await estimationService.calculateCategory(req.body);
         await sendEmail(email, calculatedData);
 
-        res.status(200).json({ success: true, message: "Email sent successfully" });
-    } catch (error) {
-        console.error("❌ Email Error:", error.message);
-        res.status(500).json({ success: false, message: "Error sending email" });
+        ok(res, { message: 'Email sent successfully' });
+    } catch (err) {
+        handleError(res, err);
     }
 };
-// --- إضافة الوظيفة المطلوبة في العقد (حفظ في قاعدة البيانات) ---
-const createProjectEstimation = async (req, res) => {
+
+// حفظ التقدير في قاعدة البيانات
+export const createProjectEstimation = async (req, res) => {
     try {
         const { project_id, budget_type } = req.body;
 
-        // 1. التحقق من البيانات المطلوبة حسب العقد
         if (!project_id || !budget_type) {
-            return res.status(400).json({
-                success: false,
-                message: "project_id et budget_type obligatoires"
-            });
+            throw new ValidationError('project_id and budget_type are required');
         }
 
-        // 2. مناداة الـ Service للحساب والحفظ (تأكدي من وجود الفانكشن في الـ service)
-        // سنستخدم validatedData كما فعلتِ في كودك
         const result = await estimationService.createAndSaveEstimation(req.body);
 
-        // 3. الرد بنفس صيغة الـ Response الموجودة في صورتك (201 Created)
-        res.status(201).json({
-            success: true,
-            estimation_id: result.id, // المعرف الذي يأتي من Supabase
-            project_id: project_id,
-            budget_type: budget_type,
-            created_at: result.created_at
-        });
-
-    } catch (error) {
-        console.error("❌ Error in createProjectEstimation:", error.message);
-        res.status(500).json({ success: false, message: error.message });
+        ok(res, {
+            estimation_id: result.id,
+            project_id,
+            budget_type,
+            created_at: result.created_at,
+        }, 201);
+    } catch (err) {
+        handleError(res, err);
     }
 };
-
-// تحديث الـ exports لتشمل الوظيفة الجديدة
-module.exports = {
-    calculateCategory,
-    generatePDF: generatePDFController,
-    sendEmail: sendEmailController,
-    createProjectEstimation // أضفناها هنا
-};
-
