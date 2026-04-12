@@ -1,28 +1,50 @@
-import express from 'express';
-import cors from 'cors';
+ require('dotenv').config();
+ require('./services/cronJobs');
+const express = require('express');
+const errorHandler = require('./services/errorHandler');
+const cors = require('cors');
 
-import dotenv from 'dotenv';
 
-dotenv.config();
-
-import errorHandler from './middelwares/error.js';
-import authRoutes from './routes/auth.route.js';
-import planRoutes from './routes/plans.route.js';
-import subscriptionRoutes from './routes/subscription.route.js';
+// استدعاء المسارات (Routes)
+const estimationRoutes = require('./routes/estimations');
+const materialRoutes = require('./routes/materials');
+const serviceRoutes = require('./routes/services');
+const settingRoutes = require('./routes/settings'); 
 
 const app = express();
 
-app.use(cors());
+// 1. الإعدادات الأساسية (Middleware)
+app.use(cors()); 
+app.use(express.json()); 
 
-app.use(express.json());
-// routes
-//auth
-app.use('/api', authRoutes);
-//
-app.use('/api', planRoutes);
-//
-app.use('/api', subscriptionRoutes);
+// 2. رابط تجريبي (Health Check)
+app.get('/test', (req, res) => {
+    res.status(200).json({ 
+        success: true, 
+        message: "🚀 السيرفر شغال 100% وكل الأنظمة جاهزة للاختبار" 
+    });
+});
+
+// 3. تفعيل المسارات (API Endpoints)
+app.use('/api/estimations', estimationRoutes); 
+app.use('/api/materials', materialRoutes); 
+app.use('/api/services', serviceRoutes);
+app.use('/api/settings', settingRoutes);
 
 app.use(errorHandler);
 
-export default app;
+// 4. معالجة الروابط غير الموجودة
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: "الرابط المطلوب غير موجود" });
+});
+
+// 5. تشغيل السيرفر
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`
+    ===============================================
+    🚀 Server is LIVE on http://localhost:${PORT}
+    🏗️  Backend for Construction Budget is READY
+    ===============================================
+    `);
+});
