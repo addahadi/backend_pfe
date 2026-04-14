@@ -24,5 +24,7 @@ router.get('/projects/:id/estimation',  ctrl.getEstimation);
 // Leaf save / remove
 router.post('/estimation/save-leaf',    ctrl.saveLeafResult);
 router.delete('/estimation/leaf',       ctrl.removeLeaf);
+// ─── Export        ──────────────────────────────────────────
+router.post('/export', ctrl.exportProjectReport);
 
 export default router;

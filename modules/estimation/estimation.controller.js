@@ -7,6 +7,8 @@ import {
   UUIDParamSchema,
 } from './schemas.js';
 import * as service from './estimation.service.js';
+import { generatePDF } from '../../services/externalService/pdfService.js';
+import { sendEmail } from '../../services/externalService/emailService.js';
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 
@@ -130,3 +132,54 @@ export async function removeLeaf(req, res) {
   } catch (err) { handleError(res, err); }
 }
 
+// ─── Export & Notifications (الزيادة الجديدة) ──────────────────────────────────
+
+/**
+ * POST /estimation/export
+ * Generates a PDF report and optionally sends it via email.
+ */
+export async function exportProjectReport(req, res) {
+  try {
+    const { projectId, email } = req.body;
+
+    // جلب البيانات من السيرفس (تأكدي من إضافة الدالة في estimation.service.js)
+    const project = await service.getProjectDetailsForExport(projectId);
+    
+    if (!project) {
+      return notFound(res, 'Project details not found');
+    }
+
+    // تنظيم البيانات لتتوافق مع دوال الـ PDF والإيميل
+    
+    const formattedData = {
+      category_info: { name: project.category_name },
+      
+      // هنا نقرأ القائمة مباشرة كما راهي باينة في الصورة
+      details: (project.results || []).map(item => ({
+        name: item.output_key || 'Unknown', 
+        type: 'RESULT',
+        total_item_dzd: item.value || 0
+      })),
+      
+      // بما أن الـ Grand Total مكاش في الصورة، نقدروا نحسبوه من الجمع
+      summary: { 
+        grand_total: (project.results || []).reduce((acc, curr) => acc + (curr.value || 0), 0) 
+      }
+    };
+    // توليد ملف الـ PDF
+    const pdfBuffer = await generatePDF(formattedData);
+    
+    // إرسال الإيميل إذا تم تزويده في الطلب
+    if (email) {
+      await sendEmail(email, formattedData, pdfBuffer);
+    }
+
+    // إرسال ملف الـ PDF كاستجابة ليتم تحميله
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=estimation_${projectId}.pdf`);
+    res.send(pdfBuffer);
+
+  } catch (err) { 
+    handleError(res, err); 
+  }
+}

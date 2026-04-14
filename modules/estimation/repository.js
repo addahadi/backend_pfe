@@ -97,6 +97,29 @@ export class PostgresEngineRepository {
     if (!rows[0]) throw new RepositoryError(`Unit not found: ${unit_id}`);
     return rows[0];
   }
+  async getLatestExchangeRate() {
+  const rows = await sql`
+    SELECT final_applied_rate as rate 
+    FROM public.exchange_rate_log 
+    ORDER BY created_at DESC 
+    LIMIT 1
+  `;
+  // إذا لقى السعر (مثلا 141.23) يديه، وإذا مالقاش يدير 221.5 كاحتياط
+  return rows[0]?.rate || 221.5; 
+}
+async getProjectDetails(projectId) {
+  const rows = await sql`
+    SELECT 
+      pd.results, 
+      pd.values,
+      c.name_en as category_name
+    FROM public.project_details pd
+    JOIN public.categories c ON pd.category_id = c.category_id
+    WHERE pd.project_id = ${projectId}
+    LIMIT 1
+  `;
+  return rows[0];
+}
 }
 
 export class RepositoryError extends Error {

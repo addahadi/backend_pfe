@@ -4,16 +4,16 @@ import { evaluator } from './evaluator.js';
  * CalculationEngine
  *
  * Pipeline:
- *  1. Build vars from user field_values
- *  2. Evaluate the selected NON_MATERIAL formula only
- *     → its outputs land in the variable context
- *  3. Resolve chained fields (source_formula_id)
- *  4. Inject coefficients for the selected config
- *  5. For each material in the catalog:
- *       - Attempt to evaluate its MATERIAL formula against the current context
- *       - If a variable is missing → skip gracefully, record in skipped_materials
- *       - If evaluation succeeds → build cost line
- *  6. Roll up totals from successfully calculated lines only
+ * 1. Build vars from user field_values
+ * 2. Evaluate the selected NON_MATERIAL formula only
+ * → its outputs land in the variable context
+ * 3. Resolve chained fields (source_formula_id)
+ * 4. Inject coefficients for the selected config
+ * 5. For each material in the catalog:
+ * - Attempt to evaluate its MATERIAL formula against the current context
+ * - If a variable is missing → skip gracefully, record in skipped_materials
+ * - If evaluation succeeds → build cost line
+ * 6. Roll up totals from successfully calculated lines only
  */
 export class CalculationEngine {
   constructor(repo) {
@@ -24,13 +24,15 @@ export class CalculationEngine {
     this.validateInput(input);
 
     // ── 1. Build variable context from user inputs ────────────────────────────
+    // جلب سعر الصرف من الـ repository مباشرة لتجنب أخطاء الاتصال اليدوي
+    const latestRate = await this.repo.getLatestExchangeRate(); 
     const vars = this.buildInitialVars(input.field_values);
 
     // ── 2. Evaluate the selected NON_MATERIAL formula only ───────────────────
     const selectedFormula = await this.repo.getFormula(input.selected_formula_id);
     this.assertFormulaType(selectedFormula, 'NON_MATERIAL');
 
-    const outputs           = await this.repo.getFormulaOutputs(selectedFormula.formula_id);
+    const outputs = await this.repo.getFormulaOutputs(selectedFormula.formula_id);
     const intermediateResults = await this.evaluateFormula(selectedFormula, outputs, vars);
 
     // Register outputs into vars so MATERIAL formulas can reference them
@@ -42,11 +44,11 @@ export class CalculationEngine {
     const fieldDefs = await this.repo.getFieldDefinitions(selectedFormula.formula_id);
     for (const field of fieldDefs) {
       if (field.source_formula_id && !(field.field_id in vars)) {
-        const src     = await this.repo.getFormula(field.source_formula_id);
+        const src = await this.repo.getFormula(field.source_formula_id);
         const srcOuts = await this.repo.getFormulaOutputs(field.source_formula_id);
-        const res     = await this.evaluateFormula(src, srcOuts, vars);
+        const res = await this.evaluateFormula(src, srcOuts, vars);
         for (const r of res) {
-          vars[r.output_key]   = r.value;
+          vars[r.output_key] = r.value;
           vars[field.field_id] = r.value;
         }
       }
@@ -59,7 +61,7 @@ export class CalculationEngine {
     for (const c of coefficients) vars[c.name] = c.value;
 
     // ── 5. Evaluate material formulas — skip if context is insufficient ───────
-    const materials       = await this.repo.getMaterialsForCategory(input.category_id);
+    const materials = await this.repo.getMaterialsForCategory(input.category_id);
     const matLines = [];
     const skippedMaterials = [];
 
@@ -72,9 +74,9 @@ export class CalculationEngine {
         rawQty = this.evalExpr(mf.expression, vars, mf);
       } catch (e) {
         skippedMaterials.push({
-          material_id:   mat.material_id,
+          material_id: mat.material_id,
           material_name: mat.material_name,
-          reason:        e.message,
+          reason: e.message,
         });
         continue;
       }
@@ -84,23 +86,27 @@ export class CalculationEngine {
       );
 
       const waste = mat.default_waste_factor;
-      const qtyW  = this.r4(rawQty * (1 + waste));
-      const sub   = this.r2(qtyW * mat.unit_price_usd);
-      const unit  = await this.repo.getUnit(mat.unit_id);
+      const qtyW = this.r4(rawQty * (1 + waste));
+      
+      // استعمال السعر المجلوب من الداتاباز (DZD)
+      const mFactor = vars['market_factor'] || 1.7;
+      const sub_dzd = this.r2(qtyW * mat.unit_price_usd * latestRate * mFactor);
+      
+      const unit = await this.repo.getUnit(mat.unit_id);
 
       matLines.push({
-        material_id:           mat.material_id,
-        material_name:         mat.material_name,
-        material_type:         mat.material_type,
-        quantity:              this.r4(rawQty),
-        unit_symbol:           unit.symbol,
-        unit_price_usd:        mat.unit_price_usd,
-        unit_price_snapshot:   mat.unit_price_usd,
-        waste_factor:          waste,
+        material_id: mat.material_id,
+        material_name: mat.material_name,
+        material_type: mat.material_type,
+        quantity: this.r4(rawQty),
+        unit_symbol: unit.symbol,
+        unit_price_usd: mat.unit_price_usd,
+        unit_price_snapshot: mat.unit_price_usd,
+        waste_factor: waste,
         waste_factor_snapshot: waste,
-        applied_waste:         this.r4(rawQty * waste),
-        quantity_with_waste:   qtyW,
-        sub_total:             sub,
+        applied_waste: this.r4(rawQty * waste),
+        quantity_with_waste: qtyW,
+        sub_total: sub_dzd, // تم تصحيح الخطأ المطبعي هنا
       });
     }
 
@@ -117,17 +123,17 @@ export class CalculationEngine {
     );
 
     return {
-      category_id:              input.category_id,
-      selected_formula_id:      input.selected_formula_id,
-      selected_config_id:       input.selected_config_id,
+      category_id: input.category_id,
+      selected_formula_id: input.selected_formula_id,
+      selected_config_id: input.selected_config_id,
       formula_version_snapshot: selectedFormula.version,
-      intermediate_results:     intermediateResults,
-      material_lines:           matLines,
-      skipped_materials:        skippedMaterials,
-      subtotal_primary:         primSub,
-      subtotal_accessory:       accSub,
-      total_cost:               this.r2(primSub + accSub),
-      computed_at:              new Date().toISOString(),
+      intermediate_results: intermediateResults,
+      material_lines: matLines,
+      skipped_materials: skippedMaterials,
+      subtotal_primary: primSub,
+      subtotal_accessory: accSub,
+      total_cost: this.r2(primSub + accSub),
+      computed_at: new Date().toISOString(),
     };
   }
 
@@ -136,29 +142,29 @@ export class CalculationEngine {
   async evaluateFormula(formula, outputs, vars) {
     if (outputs.length === 0) {
       const value = this.evalExpr(formula.expression, vars, formula);
-      const unit  = await this.repo.getUnit(formula.output_unit_id);
+      const unit = await this.repo.getUnit(formula.output_unit_id);
       return [{
-        formula_id:      formula.formula_id,
+        formula_id: formula.formula_id,
         formula_version: formula.version,
-        output_key:      formula.name.toLowerCase().replace(/\s+/g, '_'),
-        output_label:    formula.name,
-        value:           this.r4(value),
-        unit_symbol:     unit.symbol,
+        output_key: formula.name.toLowerCase().replace(/\s+/g, '_'),
+        output_label: formula.name,
+        value: this.r4(value),
+        unit_symbol: unit.symbol,
       }];
     }
 
     const results = [];
     for (const out of outputs) {
-      const expr  = out.expression ?? formula.expression;
+      const expr = out.expression ?? formula.expression;
       const value = this.evalExpr(expr, vars, formula);
-      const unit  = await this.repo.getUnit(out.output_unit_id);
+      const unit = await this.repo.getUnit(out.output_unit_id);
       results.push({
-        formula_id:      formula.formula_id,
+        formula_id: formula.formula_id,
         formula_version: formula.version,
-        output_key:      out.output_key,
-        output_label:    out.output_label,
-        value:           this.r4(value),
-        unit_symbol:     unit.symbol,
+        output_key: out.output_key,
+        output_label: out.output_label,
+        value: this.r4(value),
+        unit_symbol: unit.symbol,
       });
     }
     return results;
@@ -192,8 +198,8 @@ export class CalculationEngine {
   }
 
   validateInput(i) {
-    if (!i.category_id)          throw new EngineError('category_id is required');
-    if (!i.selected_formula_id)  throw new EngineError('selected_formula_id is required');
+    if (!i.category_id) throw new EngineError('category_id is required');
+    if (!i.selected_formula_id) throw new EngineError('selected_formula_id is required');
   }
 
   r2(v) { return Math.round(v * 100) / 100; }

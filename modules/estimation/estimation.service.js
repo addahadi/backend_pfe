@@ -367,4 +367,7 @@ export async function removeLeaf(project_details_id) {
       total_budget:  finalEst.total_budget,
     };
   });
+  }
+ export async function getProjectDetailsForExport(projectId) {
+  return await repo.getProjectDetails(projectId);
 }
