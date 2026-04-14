@@ -2,7 +2,7 @@
 import express from 'express';
 
 // استيراد controller
-import { create, getMine } from '../../controllers/auth/subscription.controller.js';
+import { create, getMine , getAll } from '../controllers/subscription.controller.js';
 
 // middleware التحقق من التوكن
 import verifyToken from '../../middelwares/verfytToken.js';
@@ -35,5 +35,9 @@ GET /subscriptions/me
 */
 
 router.get('/subscriptions/me', verifyToken, getMine);
+// -----------------------------
+// جلب كل الاشتراكات (admin فقط)
+// -----------------------------
+router.get('/subscriptions', getAll);
 
 export default router;
