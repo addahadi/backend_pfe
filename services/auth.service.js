@@ -38,8 +38,14 @@ export const register = async ({ name, email, password }) => {
   const userId = newUser[0].id;
 
   // 4️⃣ access token
+  /*
   const accessToken = jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
-
+*/
+const accessToken = jwt.sign(
+  { userId: user.id, role: user.role },
+  process.env.JWT_ACCESS_SECRET,
+  { expiresIn: '15m' }
+);
   // 5️⃣ refresh token
   const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
@@ -91,11 +97,19 @@ export const login = async ({ email, password }) => {
     throw new Error('Invalid credentials');
   }
 
+  
   // access token
+  /*
   const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_ACCESS_SECRET, {
     expiresIn: '15m',
   });
-
+*/
+const accessToken = jwt.sign(
+  { userId, role: newUser[0].role },
+  process.env.JWT_ACCESS_SECRET,
+  { expiresIn: '15m' }
+);
+  
   // refresh token
   const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: '7d',

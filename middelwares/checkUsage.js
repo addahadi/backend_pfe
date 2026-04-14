@@ -1,68 +1,48 @@
-import sql from '../config/database.js';
-import { getPlanFeatures } from '../services/subscription.service.js';
-
-/*
-checkUsage Middleware
-
-يخدم لـ:
-- projects
-- AI usage
-- external services
-*/
-
-export default function checkUsage(featureKey, tableName) {
+export default function checkUsage(featureKey) {
   return async (req, res, next) => {
     try {
       const userId = req.user.userId;
       const subscription = req.subscription;
 
-      // -----------------------------
-      // 1️⃣ نجيب feature
-      // -----------------------------
-      const features = await getPlanFeatures(subscription.plan_id);
+      // 1️⃣ check subscription
+      if (!subscription) {
+        return res.status(403).json({
+          message: 'No active subscription',
+        });
+      }
 
-      const feature = features.find((f) => f.feature_key === featureKey);
+      // 2️⃣ get features (snapshot)
+      const features = subscription.features_snapshot;
 
-      if (!feature) {
+      const limit = features[featureKey];
+
+      if (!limit) {
         return res.status(403).json({
           message: 'Feature not available',
         });
       }
 
-      const limit = feature.feature_value;
-
-      // -----------------------------
-      // 2️⃣ إذا unlimited
-      // -----------------------------
+      // 3️⃣ unlimited
       if (limit === 'unlimited') {
         return next();
       }
 
-      // -----------------------------
-      // 3️⃣ نحسب الاستعمال
-      // -----------------------------
-      if (tableName === 'estimations') {
-        const result = await sql`
-    SELECT COUNT(*)
-    FROM estimations e
-    JOIN projects p ON e.project_id = p.project_id
-    WHERE p.user_id = ${userId}
-  `;
+      // 4️⃣ get usage
+      const getUsage = usageMap[featureKey];
 
-        count = parseInt(result[0].count);
-      } else {
-        const result = await sql`
-    SELECT COUNT(*) FROM ${sql(tableName)}
-    WHERE user_id = ${userId}
-  `;
-
-        count = parseInt(result[0].count);
+      if (!getUsage) {
+        return res.status(500).json({
+          message: `No usage logic for ${featureKey}`,
+        });
       }
 
-      // -----------------------------
-      // 4️⃣ تحقق من limit
-      // -----------------------------
-      if (count >= parseInt(limit)) {
+      const usage = await getUsage(
+        userId,
+        subscription.subscription_id
+      );
+
+      // 5️⃣ compare
+      if (usage >= parseInt(limit)) {
         return res.status(403).json({
           message: `${featureKey} limit reached`,
         });
