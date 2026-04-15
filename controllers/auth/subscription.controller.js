@@ -49,3 +49,25 @@ export const getMine = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getAll = async (req, res, next) => {
+  try {
+    // -----------------------------
+    // 1️⃣ استدعاء service
+    // -----------------------------
+    const result = await subscriptionService.getAllSubscriptions();
+
+    // -----------------------------
+    // 2️⃣ إرسال النتيجة
+    // -----------------------------
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    // -----------------------------
+    // 3️⃣ تمرير الخطأ
+    // -----------------------------
+    next(error);
+  }
+};

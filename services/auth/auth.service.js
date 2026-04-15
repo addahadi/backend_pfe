@@ -8,10 +8,11 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
 // استيراد الاتصال بقاعدة البيانات
-import sql from '../config/database.js';
+import sql from '../../config/database.js';
 
 // UUID
 import crypto from 'crypto';
+import { ConflictError, AuthError, NotFoundError } from '../../utils/AppError.js';
 
 /*
 ========================
@@ -25,7 +26,7 @@ export const register = async ({ name, email, password }) => {
   `;
 
   if (users.length > 0) {
-    throw new Error('Email already exists');
+    throw new ConflictError('Email already exists');
   }
 
   // 2️⃣ hash password
@@ -41,8 +42,14 @@ export const register = async ({ name, email, password }) => {
   const userId = newUser[0].id;
 
   // 4️⃣ access token
+  /*
   const accessToken = jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
-
+*/
+const accessToken = jwt.sign(
+  { userId: user.id, role: user.role },
+  process.env.JWT_ACCESS_SECRET,
+  { expiresIn: '15m' }
+);
   // 5️⃣ refresh token
   const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
@@ -83,7 +90,7 @@ export const login = async ({ email, password }) => {
   `;
 
   if (!users.length) {
-    throw new Error('User not found');
+    throw new NotFoundError('User not found');
   }
 
   const user = users[0];
@@ -91,14 +98,22 @@ export const login = async ({ email, password }) => {
   const validPassword = await bcrypt.compare(password, user.password);
 
   if (!validPassword) {
-    throw new Error('Invalid credentials');
+    throw new AuthError('Invalid credentials');
   }
 
+  
   // access token
+  /*
   const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_ACCESS_SECRET, {
     expiresIn: '15m',
   });
-
+*/
+const accessToken = jwt.sign(
+  { userId, role: newUser[0].role },
+  process.env.JWT_ACCESS_SECRET,
+  { expiresIn: '15m' }
+);
+  
   // refresh token
   const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: '7d',
@@ -157,12 +172,12 @@ export const refresh = async (refreshToken) => {
     }
 
     if (!validToken) {
-      throw new Error('Invalid refresh token');
+      throw new AuthError('Invalid refresh token');
     }
 
     // 4️⃣ check expiration
     if (new Date(validToken.expires_at) < new Date()) {
-      throw new Error('Refresh token expired');
+      throw new AuthError('Refresh token expired');
     }
 
     // 5️⃣ create new access token
@@ -197,7 +212,7 @@ export const logout = async (refreshToken) => {
   }
 
   if (!tokenId) {
-    throw new Error('Token not found');
+    throw new NotFoundError('Token not found');
   }
 
   await sql`
