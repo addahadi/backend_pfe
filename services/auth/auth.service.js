@@ -1,6 +1,16 @@
+// استيراد مكتبة تشفير كلمات المرور
 import bcrypt from 'bcrypt';
+
+// استيراد مكتبة إنشاء JWT tokens
 import jwt from 'jsonwebtoken';
+
+// استيراد مكتبة إرسال الإيميلات
+import nodemailer from 'nodemailer';
+
+// استيراد الاتصال بقاعدة البيانات
 import sql from '../../config/database.js';
+
+// UUID
 import crypto from 'crypto';
 import { ConflictError, AuthError, NotFoundError } from '../../utils/AppError.js';
 
@@ -210,4 +220,135 @@ export const logout = async (refreshToken) => {
   `;
 
   return { message: 'Logged out successfully' };
+};
+
+
+/*
+========================
+FORGOT PASSWORD
+========================
+*/
+export const forgotPassword = async ({ email }) => {
+  // 1️⃣ البحث عن المستخدم
+  const users = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+
+  // 2️⃣ إذا لم يوجد المستخدم لا نكشف ذلك (أمان)
+  if (!users.length) {
+    return { message: 'If email exists, a link was sent' };
+  }
+
+  const userId = users[0].id;
+
+  // 3️⃣ إنشاء resetToken وتشفيره
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 دقيقة
+
+  // 4️⃣ حفظ التوكن في قاعدة البيانات
+  await sql`
+    UPDATE users 
+    SET reset_token = ${hashedToken}, reset_token_expires = ${expiresAt}
+    WHERE id = ${userId}
+  `;
+
+  // 5️⃣ إرسال الإيميل
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+  await sendResetEmail(email, resetLink);
+
+  return { message: 'If email exists, a link was sent' };
+};
+
+/*
+========================
+VERIFY RESET TOKEN
+========================
+*/
+export const verifyResetToken = async ({ token }) => {
+  // 1️⃣ تشفير التوكن للمقارنة
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  // 2️⃣ البحث عن التوكن في قاعدة البيانات
+  const users = await sql`
+    SELECT id FROM users 
+    WHERE reset_token = ${hashedToken} 
+    AND reset_token_expires > NOW()
+  `;
+
+  if (!users.length) {
+    throw new Error('Token invalid or expired');
+  }
+
+  return { message: 'Token valid' };
+};
+
+/*
+========================
+RESET PASSWORD
+========================
+*/
+export const resetPassword = async ({ token, newPassword }) => {
+  // 1️⃣ تشفير التوكن للمقارنة
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  // 2️⃣ التحقق من التوكن مرة أخرى
+  const users = await sql`
+    SELECT id FROM users 
+    WHERE reset_token = ${hashedToken} 
+    AND reset_token_expires > NOW()
+  `;
+
+  if (!users.length) {
+    throw new Error('Token expired, request a new one');
+  }
+
+  const userId = users[0].id;
+
+  // 3️⃣ تشفير كلمة السر الجديدة
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  // 4️⃣ تحديث كلمة السر وحذف التوكن
+  await sql`
+    UPDATE users 
+    SET password = ${hashedPassword}, 
+        reset_token = NULL, 
+        reset_token_expires = NULL
+    WHERE id = ${userId}
+  `;
+
+  // 5️⃣ حذف كل refresh tokens (أمان)
+  await sql`
+    DELETE FROM refresh_tokens WHERE user_id = ${userId}
+  `;
+
+  return { message: 'Password reset successful' };
+};
+
+/*
+========================
+SEND RESET EMAIL
+========================
+*/
+const sendResetEmail = async (email, resetLink) => {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: process.env.SMTP_USER,
+    to: email,
+    subject: 'Reset Your Password',
+    html: `
+      <h2>Reset Your Password</h2>
+      <p>Click the link below to reset your password:</p>
+      <a href="${resetLink}">${resetLink}</a>
+      <p>This link expires in 15 minutes.</p>
+    `,
+  });
 };

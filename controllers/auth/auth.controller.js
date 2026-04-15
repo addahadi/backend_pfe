@@ -7,6 +7,8 @@ Controller يستقبل request
 Handles HTTP request.
 */
 //controller
+
+import * as authService from '../services/auth.service.js';
 import * as authService from '../../services/auth/auth.service.js';
 
 export const register = async (req, res, next) => {
@@ -65,6 +67,46 @@ export const logout = async (req, res, next) => {
 
     const result = await authService.logout(refreshToken);
 
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+   /*__________________("-")___________________*/ 
+/*
+يستقبل الإيميل ويرسل رابط إعادة التعيين
+*/
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.forgotPassword({ email });
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/*
+يتحقق من صلاحية التوكن
+*/
+export const verifyResetToken = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    const result = await authService.verifyResetToken({ token });
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/*
+يستقبل التوكن وكلمة السر الجديدة ويحدثها
+*/
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    const result = await authService.resetPassword({ token, newPassword });
     res.status(200).json(result);
   } catch (error) {
     next(error);

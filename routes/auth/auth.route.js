@@ -6,12 +6,20 @@ Defines API endpoints for authentication.
 
 import express from 'express';
 
+
+// استيراد schemas الخاصة بنسيان كلمة السر
+import { forgotPasswordSchema, resetPasswordSchema } from '../schemas/auth.schema.js';
+
+// استيراد controllers الخاصة بنسيان كلمة السر
+import { forgotPassword, verifyResetToken, resetPassword } from '../controllers/auth.controller.js';
+
 import { login, register, verify, logout, refresh } from '../../controllers/auth/auth.controller.js';
 import { validate } from '../../middelwares/validate.js';
 import { loginShema, registerSchema, refreshSchema } from '../../schemas/auth.schema.js';
-import verifyToken from '../../middelwares/verfytToken.js';
 
 const router = express.Router();
+
+
 
 /*
 POST /auth/register
@@ -37,4 +45,28 @@ router.put('/refresh', validate(refreshSchema), refresh);
 router.get('/verify', verifyToken, verify);
 //logout
 router.post('/logout', logout);
+
+
+/*
+POST /auth/forgot-password
+
+يستقبل الإيميل ويرسل رابط إعادة التعيين
+*/
+router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+
+/*
+GET /auth/verify-reset-token
+
+يتحقق من صلاحية التوكن قبل عرض فورم كلمة السر الجديدة
+*/
+router.get('/verify-reset-token', verifyResetToken);
+
+/*
+POST /auth/reset-password
+
+يستقبل التوكن وكلمة السر الجديدة ويحدثها
+*/
+router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+
+
 export default router;
