@@ -106,7 +106,7 @@ export class CalculationEngine {
         waste_factor_snapshot: waste,
         applied_waste: this.r4(rawQty * waste),
         quantity_with_waste: qtyW,
-        sub_total: sub_dzd, // تم تصحيح الخطأ المطبعي هنا
+        sub_total: sub_dzd, 
       });
     }
 
