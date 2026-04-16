@@ -1,5 +1,7 @@
 // استيراد الاتصال بقاعدة البيانات
 import sql from '../config/database.js';
+import { NotFoundError, ConflictError } from '../../utils/AppError.js';
+
 /*
 Create Subscription Service
 
@@ -17,7 +19,7 @@ export const createSubscription = async ({ userId, planId }) => {
     `;
 
     if (!plan.length) {
-      throw new Error('Plan not found');
+      throw new NotFoundError('Plan not found');
     }
 
     const selectedPlan = plan[0];
@@ -31,7 +33,7 @@ export const createSubscription = async ({ userId, planId }) => {
     `;
 
     if (existing.length) {
-      throw new Error('You already have this plan');
+      throw new ConflictError('You already have this plan');
     }
 
     // 3️⃣ deactivate old subscriptions
@@ -100,7 +102,7 @@ Get My Subscription Service
 */
 export const getMySubscription = async (userId) => {
   // -----------------------------
-  // 1️⃣ جلب الاشتراك ACTIVE
+  // 1️⃣ جلب subscription
   // -----------------------------
   const result = await sql`
     SELECT * FROM subscriptions
@@ -108,35 +110,43 @@ export const getMySubscription = async (userId) => {
       AND status = 'ACTIVE'
     LIMIT 1
   `;
-  // إذا ما عندوش subscription
-  if (result.length === 0) {
+
+  if (!result.length) {
     return null;
   }
+
   const subscription = result[0];
-  // -----------------------------
-  // 2️⃣ التحقق من انتهاء الاشتراك
-  // -----------------------------
-  /*
-  إذا end_date فات
-  → الاشتراك لم يعد صالح
-  */
-  const now = new Date();
-
-  if (new Date(subscription.end_date) < now) {
-    // نحدث الحالة إلى INACTIVE
-    await sql`
-      UPDATE subscriptions
-      SET status = 'INACTIVE'
-      WHERE id = ${subscription.id}
-    `;
-
-    return null;
-  }
 
   // -----------------------------
-  // 3️⃣ إرجاع الاشتراك
+  // 2️⃣ جلب plan
   // -----------------------------
-  return subscription;
+  const plans = await sql`
+    SELECT name_en, price, duration
+    FROM plans
+    WHERE plan_id = ${subscription.plan_id}
+  `;
+
+  const plan = plans[0];
+
+  // -----------------------------
+  // 3️⃣ format (فقط current plan)
+  // -----------------------------
+  return {
+    status: subscription.status,
+
+    plan: {
+      name: plan.name_en,
+      price: plan.price,
+      duration: plan.duration,
+    },
+
+    billingCycle: plan.duration >= 365 ? 'Annual' : 'Monthly',
+
+    period: {
+      start: subscription.start_date,
+      end: subscription.end_date,
+    },
+  };
 };
 
 /*
@@ -145,6 +155,8 @@ Get Features By Plan
 هذه الدالة:
 - تجيب features الخاصة بالـ plan
 */
+
+/*
 export const getPlanFeatures = async (planId) => {
   const features = await sql`
     SELECT feature_key, feature_value
@@ -153,4 +165,59 @@ export const getPlanFeatures = async (planId) => {
   `;
 
   return features;
+};
+*/
+//get all etAllSubscriptions 
+export const getAllSubscriptions = async () => {
+  // -----------------------------
+  // 1️⃣ جلب كل الاشتراكات مع ربط المستخدم و الـ plan
+  // -----------------------------
+  const rows = await sql`
+    SELECT 
+      s.subscription_id,      -- معرف الاشتراك
+      s.status,               -- حالة الاشتراك (ACTIVE / INACTIVE)
+      s.start_date,           -- تاريخ البداية
+      s.end_date,             -- تاريخ النهاية
+
+      u.id as user_id,        -- معرف المستخدم
+      u.email,                -- ايميل المستخدم
+      u.name,                 -- اسم المستخدم
+
+      p.plan_id,              -- معرف الخطة
+      p.name_en,              -- اسم الخطة
+      p.price                 -- سعر الخطة
+
+    FROM subscriptions s
+
+    -- ربط الاشتراك مع المستخدم
+    JOIN users u ON s.user_id = u.id
+
+    -- ربط الاشتراك مع الخطة
+    JOIN plans p ON s.plan_id = p.plan_id
+  `;
+
+  // -----------------------------
+  // 2️⃣ تحويل البيانات إلى شكل مرتب (object)
+  // -----------------------------
+  return rows.map((r) => ({
+    id: r.subscription_id,    // id الاشتراك
+    status: r.status,
+    start_date: r.start_date,
+    end_date: r.end_date,
+
+ //comment just for push
+    // بيانات المستخدم
+    user: {
+      id: r.user_id,
+      name: r.name,
+      email: r.email,
+    },
+
+    // بيانات الخطة
+    plan: {
+      id: r.plan_id,
+      name: r.name_en,
+      price: r.price,
+    },
+  }));
 };

@@ -1,5 +1,5 @@
 {
-  "name": "backend_pfe",
+  "name": "service-externe",
   "version": "1.0.0",
   "description": "",
   "main": "src/server.js",
@@ -15,6 +15,7 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.100.0",
+    "axios": "^1.15.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.1",
     "cors": "^2.8.6",
@@ -22,7 +23,9 @@
     "express": "^5.2.1",
     "groq-sdk": "^0.5.0",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
+    "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "postgres": "^3.4.7",
     "uuid": "^13.0.0",
