@@ -66,6 +66,31 @@ export async function calculate(req, res) {
     const result = await service.runCalculation(input);
 
     console.log(`✅ Calcul terminé (Taux utilisé : 1 USD = ${exchangeInfo.official_rate} DZD) - ${exchangeInfo.source === 'external_api' ? 'API' : 'Cache/Défaut'}`);
+
+    // ----- [NOUVEAU FLUX: Génération PDF + Email] -----
+    if (req.body.email) {
+      console.log('📄 Données envoyées au PDF :', result.material_lines?.length || 0, 'lignes');
+
+      const pdfData = {
+        projectName: req.body.projectName || 'Estimation Rapide',
+        categoryName: req.body.categoryName || 'Calcul',
+        date: new Date().toLocaleDateString(),
+        dimensions: input.field_values || {},
+        intermediateResults: result.intermediate_results.map(r => ({ label: r.output_label || r.output_key, value: r.value, unit: r.unit_symbol })),
+        material_lines: result.material_lines,
+        total_cost: result.total_cost
+      };
+
+      try {
+        const pdfBuffer = await generatePDF(pdfData);
+        console.log(`🚀 Tentative d'envoi d'email à :`, req.body.email);
+        await sendEmail(req.body.email, pdfData, pdfBuffer);
+        console.log(`✅ Email envoyé avec succès à : ${req.body.email}`);
+      } catch (error) {
+        console.error('❌ Erreur Email Service:', error);
+      }
+    }
+
     ok(res, result);
   } catch (err) { handleError(res, err); }
 }
@@ -172,33 +197,44 @@ export async function exportProjectReport(req, res) {
 
     const resolvedProjectName = project?.name || 'Projet sans nom';
 
-    // 4. Flattening des materials et intermediateResults car le pdfService s'attend à un tableau de base à la racine (data.materials)
+    // 4. Recalculate Live Data using CalculationEngine
     const allMaterials = [];
     const allIntermediate = [];
+    let liveGrandTotal = 0;
 
-    details.forEach(pd => {
-      // Les results bruts json
-      const interR = Array.isArray(pd.results) ? pd.results : (pd.results?.intermediate_results ? pd.results.intermediate_results : []);
-      interR.forEach(r => {
-        allIntermediate.push({
-          label: r.output_label || r.output_key,
-          value: r.value,
-          unit: r.unit_symbol
-        });
-      });
+    // Refresh exchange rates globally before calculation loop
+    await getExchangeSettings();
 
-      // Les vraies material_lines issues de la BDD via le repository engine
-      const mats = pd.material_lines || [];
-      mats.forEach(m => {
-        allMaterials.push({
-          label: m.material_name,
-          qty: m.quantity_with_waste || m.quantity,
-          unit: m.unit_symbol,
-          price: m.unit_price_usd || m.unit_price_snapshot || Math.round(m.sub_total / (m.quantity_with_waste || m.quantity || 1)),
-          total: m.sub_total
+    for (const pd of details) {
+      if (!pd.selected_formula_id) continue;
+
+      const input = {
+        category_id: pd.category_id,
+        selected_formula_id: pd.selected_formula_id,
+        selected_config_id: pd.selected_config_id,
+        field_values: typeof pd.values === 'string' ? JSON.parse(pd.values) : (pd.values || {})
+      };
+
+      try {
+        const liveResult = await service.runCalculation(input);
+
+        liveGrandTotal += liveResult.total_cost;
+
+        liveResult.intermediate_results.forEach(r => {
+          allIntermediate.push({
+            label: r.output_label || r.output_key,
+            value: r.value,
+            unit: r.unit_symbol
+          });
         });
-      });
-    });
+
+        liveResult.material_lines.forEach(m => {
+          allMaterials.push(m);
+        });
+      } catch (err) {
+        console.error(`Erreur de recalcul pour la feuille ${pd.project_details_id}:`, err.message);
+      }
+    }
 
     const pdfData = {
       projectName: resolvedProjectName,
@@ -206,8 +242,8 @@ export async function exportProjectReport(req, res) {
       date: new Date(estimation?.created_at || Date.now()).toLocaleDateString(),
       dimensions: details.length > 0 ? (typeof details[0].values === 'string' ? JSON.parse(details[0].values) : (details[0].values || {})) : {},
       intermediateResults: allIntermediate,
-      materials: allMaterials,
-      grandTotal: estimation.total_budget || 0
+      material_lines: allMaterials,
+      total_cost: liveGrandTotal
     };
 
     console.log("Données envoyées au PDF:", JSON.stringify(pdfData, null, 2));
@@ -218,15 +254,18 @@ export async function exportProjectReport(req, res) {
     let destinationEmail = req.body?.email || project?.user_email || 'Kiaidaboubaker@gmail.com';
 
     if (destinationEmail) {
-      console.log(`[EMAIL] 🚀 Tentative d'envoi du rapport PDF à : ${destinationEmail}`);
+      console.log(`[EMAIL] 🚀 Tentative d'envoi du rapport PDF à : ${destinationEmail}... Taille du Buffer: ${pdfBuffer ? pdfBuffer.length : 'VIDE'} octets`);
 
       try {
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+          throw new Error("Le fichier PDF est vide ou n'a pas pu être généré (Buffer inexistant).");
+        }
         await sendEmail(destinationEmail, pdfData, pdfBuffer);
         console.log(`[EMAIL] ✅ Email envoyé avec succès à : ${destinationEmail}`);
         return ok(res, { success: true, message: 'Email envoyé avec succès' });
       } catch (error) {
-        console.error(`[EMAIL] ❌ Échec de l'envoi de l'email à ${destinationEmail}:`, error);
-        return res.status(500).json({ success: false, error: 'Échec de l\'envoi de l\'email' });
+        console.error('❌ Erreur Email:', error);
+        return res.status(500).json({ success: false, error: error.message });
       }
     } else {
       console.log(`[EMAIL] ⚠️ Aucune adresse email trouvée pour l'envoi, téléchargement direct du PDF.`);

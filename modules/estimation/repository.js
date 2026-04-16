@@ -98,17 +98,26 @@ export class PostgresEngineRepository {
     return rows[0];
   }
   async getLatestExchangeRate() {
-  const rows = await sql`
-    SELECT final_applied_rate as rate 
+    const rows = await sql`
+    SELECT official_rate as rate 
     FROM public.exchange_rate_log 
     ORDER BY created_at DESC 
     LIMIT 1
   `;
-  // إذا لقى السعر (مثلا 141.23) يديه، وإذا مالقاش يدير 221.5 كاحتياط
-  return rows[0]?.rate || 221.5; 
-}
-async getProjectDetails(projectId) {
-  const rows = await sql`
+    return rows[0]?.rate || 134.0;
+  }
+
+  async getMarketFactor() {
+    const rows = await sql`
+    SELECT market_factor
+    FROM public.financial_settings
+    LIMIT 1
+  `;
+    if (!rows[0]) throw new RepositoryError('Market factor unreachable in financial_settings');
+    return rows[0].market_factor;
+  }
+  async getProjectDetails(projectId) {
+    const rows = await sql`
     SELECT 
       pd.results, 
       pd.values,
@@ -118,8 +127,8 @@ async getProjectDetails(projectId) {
     WHERE pd.project_id = ${projectId}
     LIMIT 1
   `;
-  return rows[0];
-}
+    return rows[0];
+  }
 }
 
 export class RepositoryError extends Error {

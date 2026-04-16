@@ -26,7 +26,11 @@ export class CalculationEngine {
     // ── 1. Build variable context from user inputs ────────────────────────────
     // جلب سعر الصرف من الـ repository مباشرة لتجنب أخطاء الاتصال اليدوي
     const latestRate = await this.repo.getLatestExchangeRate();
-    console.log('📑 Exchange rate from DB:', latestRate);
+    console.log('📑 Exchange rate from DB (official_rate):', latestRate);
+
+    const adminMarketFactor = await this.repo.getMarketFactor();
+    console.log(`⚙️ [Admin Settings] Market Factor récupéré de la DB : ${adminMarketFactor}`);
+
     const vars = this.buildInitialVars(input.field_values);
 
     // ── 2. Evaluate the selected NON_MATERIAL formula only ───────────────────
@@ -89,9 +93,8 @@ export class CalculationEngine {
       const waste = mat.default_waste_factor;
       const qtyW = this.r4(rawQty * (1 + waste));
 
-      // استعمال السعر المجلوب من الداتاباز (DZD)
-      const mFactor = vars['market_factor'] || 1.7;
-      const sub_dzd = this.r2(qtyW * mat.unit_price_usd * latestRate * mFactor);
+      // Utilisation du Market Factor en temps réel de l'Admin
+      const sub_dzd = this.r2(qtyW * mat.unit_price_usd * latestRate * adminMarketFactor);
 
       const unit = await this.repo.getUnit(mat.unit_id);
 

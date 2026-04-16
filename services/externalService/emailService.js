@@ -9,10 +9,10 @@ const sendEmail = async (to, data, pdfBuffer) => {
         }
     });
 
-    const itemsRows = (data.materials || []).map(item => `
+    const itemsRows = (data.material_lines || []).map(item => `
         <tr>
-            <td style="border: 1px solid #ddd; padding: 8px;">${item.label}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${(item.total || 0).toLocaleString()} DZD</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${item.material_name}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${(item.sub_total || 0).toFixed(2)} DZD</td>
         </tr>
     `).join('');
 
@@ -28,7 +28,7 @@ const sendEmail = async (to, data, pdfBuffer) => {
                 </thead>
                 <tbody>${itemsRows}</tbody>
             </table>
-            <h3 style="color: #1d4ed8;">المجموع الكلي: ${(data.grandTotal || 0).toLocaleString()} DZD</h3>
+            <h3 style="color: #1d4ed8;">المجموع الكلي: ${(data.total_cost || 0).toFixed(2)} DZD</h3>
         </div>
     `;
 

@@ -64,19 +64,25 @@ const generatePDF = (data) => {
         // Table Rows
         let y = tableTop + 25;
         doc.font('Helvetica').fillColor('black');
-        if (data.materials && data.materials.length > 0) {
-            data.materials.forEach(item => {
+        if (data.material_lines && data.material_lines.length > 0) {
+            data.material_lines.forEach(item => {
                 if (y > 700) {
                     doc.addPage();
                     y = 50;
                 }
                 const initY = y;
-                doc.text(item.label || '-', col1, y, { width: 190 });
+
+                const qty = item.quantity_with_waste || item.quantity || 1;
+                const unit_price = Math.round((item.sub_total / qty) * 100) / 100;
+
+                doc.text(item.material_name || '-', col1, y, { width: 190 });
                 const rowHeight = doc.y - initY; // Height taken by multiline label
-                doc.text(item.qty?.toString() || '-', col2, initY);
-                doc.text(item.unit || '-', col3, initY);
-                doc.text(`${item.price?.toLocaleString() || 0} DZD`, col4, initY);
-                doc.text(`${item.total?.toLocaleString() || 0} DZD`, col5, initY);
+                doc.text(qty.toString() || '-', col2, initY);
+                doc.text(item.unit_symbol || '-', col3, initY);
+                doc.text(`${(unit_price || 0).toFixed(2)} DZD`, col4, initY);
+                doc.text(`${(item.sub_total || 0).toFixed(2)} DZD`, col5, initY);
+
+                console.log(`[PDF] Matériau : ${item.material_name} | Prix Unitaire Final : ${unit_price} DZD | Total : ${item.sub_total} DZD`);
 
                 y += Math.max(rowHeight, 15) + 10;
                 doc.moveTo(50, y - 5).lineTo(550, y - 5).strokeColor('#eeeeee').stroke();
@@ -87,7 +93,7 @@ const generatePDF = (data) => {
         doc.moveDown(2);
         const totalY = Math.max(doc.y + 20, y + 20);
         doc.fontSize(16).font('Helvetica-Bold').fillColor('#ef4444')
-            .text(`Grand Total: ${data.grandTotal.toLocaleString()} DZD`, 50, totalY, { align: 'right' });
+            .text(`Grand Total: ${(data.total_cost || 0).toFixed(2)} DZD`, 50, totalY, { align: 'right' });
 
         doc.end();
     });
