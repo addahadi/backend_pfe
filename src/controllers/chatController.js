@@ -13,13 +13,17 @@ const userExists = async (userId) => {
     }
 };
 
-// Get all predefined questions with bilingual content
-const getAllQuestions = async (req, res) => {
-    const { user_id } = req.body;
+// Get questions by display location (without answers)
+const getQuestionsByDisplayLocation = async (req, res) => {
+    const { user_id, display_location } = req.body;
 
-    // Validate user_id is provided
+    // Validate required fields
     if (!user_id) {
         return res.status(400).json({ error: "user_id is required and must be a valid UUID from the users table." });
+    }
+
+    if (!display_location) {
+        return res.status(400).json({ error: "display_location is required." });
     }
 
     try {
@@ -29,14 +33,15 @@ const getAllQuestions = async (req, res) => {
             return res.status(403).json({ error: "User not found in database. Please provide a valid user_id." });
         }
 
-        // 1. Fetch all predefined questions with bilingual content
-        const query = `SELECT id, question_text_en, question_text_ar, answer_text_en, answer_text_ar, display_location 
+        // 1. Fetch questions by display location (without answers)
+        const query = `SELECT id, question_text_en, question_text_ar, display_location
                        FROM predefined_questions 
+                       WHERE display_location = $1
                        ORDER BY created_at DESC`;
-        const result = await pool.query(query);
+        const result = await pool.query(query, [display_location]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: "No questions found in database." });
+            return res.status(404).json({ error: "No questions found for the specified display location." });
         }
 
         // 2. Log the usage history for tracking
@@ -44,24 +49,19 @@ const getAllQuestions = async (req, res) => {
                              VALUES ($1, CURRENT_DATE, $2, CURRENT_TIMESTAMP)`;
         await pool.query(insertQuery, [user_id, 'QUERY']);
 
-        // 3. Format response with bilingual content
+        // 3. Format response with bilingual content (without answers)
         const questions = result.rows.map(q => ({
             id: q.id,
-            question: {
+            language: {
                 en: q.question_text_en,
                 ar: q.question_text_ar
-            },
-            answer: {
-                en: q.answer_text_en,
-                ar: q.answer_text_ar
-            },
-            displayLocation: q.display_location
+            }
         }));
 
-        res.status(200).json({ questions, user_id: user_id });
+        res.status(200).json({ questions, display_location, user_id: user_id });
 
     } catch (error) {
-        console.error("Get All Questions Error:", error);
+        console.error("Get Questions By Display Location Error:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
@@ -164,7 +164,7 @@ const handleExpertStage = async (req, res) => {
 };
 
 module.exports = {
-    getAllQuestions,
+    getQuestionsByDisplayLocation,
     handleWelcomeStage,
     handleExpertStage
 };

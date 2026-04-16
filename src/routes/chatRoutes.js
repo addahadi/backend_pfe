@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const chatController = require('../controllers/chatController');
 
-// Route to get all predefined questions: http://localhost:3000/api/questions
-router.post('/questions', chatController.getAllQuestions);
+// Route to get questions by display location: http://localhost:3000/api/questions
+router.post('/questions', chatController.getQuestionsByDisplayLocation);
 
 // Route for Phase 1: http://localhost:3000/api/faq
 router.post('/faq', chatController.handleWelcomeStage);
