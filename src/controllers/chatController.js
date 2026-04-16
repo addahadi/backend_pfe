@@ -44,11 +44,6 @@ const getQuestionsByDisplayLocation = async (req, res) => {
             return res.status(404).json({ error: "No questions found for the specified display location." });
         }
 
-        // 2. Log the usage history for tracking
-        const insertQuery = `INSERT INTO ai_usage_history (user_id, usage_date, usage_type, created_at) 
-                             VALUES ($1, CURRENT_DATE, $2, CURRENT_TIMESTAMP)`;
-        await pool.query(insertQuery, [user_id, 'QUERY']);
-
         // 3. Format response with bilingual content (without answers)
         const questions = result.rows.map(q => ({
             id: q.id,
