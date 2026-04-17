@@ -8,7 +8,7 @@ import { PostgresEngineRepository } from './repository.js'; // Or wait, let me j
 // import { PostgresEngineRepository } from './repository';
 // Let me write the code as close as possible to the original.
 
-const repo   = new PostgresEngineRepository();
+const repo = new PostgresEngineRepository();
 const engine = new CalculationEngine(repo);
 
 // ─── Calculation (stateless) ──────────────────────────────────────────────────
@@ -286,18 +286,18 @@ export async function saveLeafResult(dto) {
     if (dto.material_lines.length > 0) {
       await tx`
         INSERT INTO estimation_detail_material ${tx(
-          dto.material_lines.map(m => ({
-            estimation_id:         estimationId,
-            project_details_id:    projectDetailsId,
-            material_id:           m.material_id,
-            quantity:              m.quantity,
-            applied_waste:         m.applied_waste,
-            quantity_with_waste:   m.quantity_with_waste,
-            unit_price_snapshot:   m.unit_price_snapshot,
-            waste_factor_snapshot: m.waste_factor_snapshot,
-            sub_total:             m.sub_total,
-          }))
-        )}
+        dto.material_lines.map(m => ({
+          estimation_id: estimationId,
+          project_details_id: projectDetailsId,
+          material_id: m.material_id,
+          quantity: m.quantity,
+          applied_waste: m.applied_waste,
+          quantity_with_waste: m.quantity_with_waste,
+          unit_price_snapshot: m.unit_price_snapshot,
+          waste_factor_snapshot: m.waste_factor_snapshot,
+          sub_total: m.sub_total,
+        }))
+      )}
       `;
     }
 
@@ -318,9 +318,9 @@ export async function saveLeafResult(dto) {
     `;
 
     return {
-      estimation_id:      estimationId,
+      estimation_id: estimationId,
       project_details_id: projectDetailsId,
-      total_budget:       finalEst.total_budget,
+      total_budget: finalEst.total_budget,
     };
   });
 }
@@ -364,7 +364,32 @@ export async function removeLeaf(project_details_id) {
 
     return {
       estimation_id: pd.estimation_id,
-      total_budget:  finalEst.total_budget,
+      total_budget: finalEst.total_budget,
     };
   });
+}
+
+export async function getExportData(project_id, user_id) {
+  const project = await getProjectById(project_id, user_id);
+
+  // L'Estimation la plus récente (depuis estimations)
+  const [estimation] = await sql`
+      SELECT * FROM estimation
+      WHERE project_id = ${project_id}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+  // Les Détails (depuis project_details)
+  let details = [];
+  if (estimation) {
+    details = await sql`
+        SELECT pd.*, c.name_en as category_name
+        FROM project_details pd
+        LEFT JOIN categories c ON c.category_id = pd.category_id
+        WHERE pd.estimation_id = ${estimation.estimation_id}
+      `;
+  }
+
+  return { project, estimation, details };
 }

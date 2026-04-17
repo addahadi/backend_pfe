@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -13,12 +14,15 @@ import subscriptionRoutes from './routes/auth/subscription.route.js';
 import settingRoutes from './routes/auth/settings.js';
 
 // External service routes
-import estimationRoutes from './routes/externalService/estimations.js';
+import estimationRoutes from './modules/estimation/routes.js';
 import materialRoutes from './routes/externalService/materials.js';
 import serviceRoutes from './routes/externalService/services.js';
 
 // Module routes
 import estimationModuleRoutes from './modules/estimation/routes.js';
+
+// AI routes
+import chatRoutes from './routes/Ai/chatRoutes.js';
 
 const app = express();
 
@@ -39,11 +43,15 @@ app.use('/api/settings', settingRoutes);
 // Estimation module
 app.use('/api/estimation', estimationModuleRoutes);
 
+// AI chat
+app.use('/api/ai', chatRoutes);
+
 app.use(errorHandler);
 
 // معالجة الروابط غير الموجودة
 app.use((req, res) => {
     res.status(404).json({ success: false, message: "الرابط المطلوب غير موجود" });
 });
+app.listen(5000, () => console.log('Server started on port 5000'));
 
 export default app;

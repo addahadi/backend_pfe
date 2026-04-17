@@ -1,18 +1,10 @@
 import jwt from 'jsonwebtoken';
 
-/*
-يتحقق من access token
-*/
-
 export default function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
     return res.status(401).json({ message: 'Token required' });
-  }
-  // 2️⃣ تحقق من format: Bearer TOKEN
-  if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Invalid token format' });
   }
 
   const token = authHeader.split(' ')[1];
@@ -20,7 +12,7 @@ export default function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-    req.user = decoded;
+    req.user = decoded; // 🔥 هنا راه فيها userId + role
 
     next();
   } catch (err) {

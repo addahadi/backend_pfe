@@ -1,6 +1,4 @@
-// استيراد مكتبة Zod للتحقق من البيانات (Validation)
-import { email, z } from 'zod';
-
+import { z } from 'zod';
 /*
 Register Schema
 
@@ -70,4 +68,15 @@ export const createPlanShema = z.object({
   price: z.number(),
   duration: z.number(),
   type: z.enum(['USER', 'COMPANY']),
+});
+
+// التحقق من بيانات طلب نسيان كلمة السر
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('invalid email format'),
+});
+
+// التحقق من بيانات إعادة تعيين كلمة السر
+export const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(6, 'password must be at least 6 characters'),
 });

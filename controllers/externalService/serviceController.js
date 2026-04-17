@@ -33,15 +33,16 @@ export const addService = async (req, res) => {
 export const updateService = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`Updating service with service_id: ${id}`);
         const updatedData = req.body;
         const { data, error } = await supabase
             .from('service_config')
             .update(updatedData)
-            .eq('id', id)
+            .eq('service_id', id)
             .select();
 
         if (error) throw new ValidationError(error.message);
-        if (!data || data.length === 0) return notFound(res, `Service with id ${id} not found`);
+        if (!data || data.length === 0) return notFound(res, `Service with service_id ${id} not found`);
         ok(res, data[0]);
     } catch (err) {
         handleError(res, err);
@@ -52,10 +53,11 @@ export const updateService = async (req, res) => {
 export const deleteService = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`Deleting service with service_id: ${id}`);
         const { error } = await supabase
             .from('service_config')
             .delete()
-            .eq('id', id);
+            .eq('service_id', id);
 
         if (error) throw new ValidationError(error.message);
         ok(res, { message: 'Service deleted successfully' });

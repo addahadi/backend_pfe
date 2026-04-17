@@ -306,25 +306,51 @@
 <!-- ═══════════════════════════ SIDEBAR ════════════════════════════ -->
 <nav class="sidebar" aria-label="API Navigation">
   <div class="sidebar-logo">
-    <div class="logo-icon">📐</div>
+    <div class="logo-icon">🚀</div>
     <div>
-      <div class="logo-text">Estimation API</div>
-      <div class="logo-sub">v1.0 · REST Reference</div>
+      <div class="logo-text">Backend PFE Architecture</div>
+      <div class="logo-sub">v1.2 · Full API Contract</div>
     </div>
   </div>
 
-  <div class="sidebar-section-label">General</div>
+  <div class="sidebar-section-label">Getting Started</div>
   <a href="#overview">📋 Overview</a>
-  <a href="#auth">🔐 Authentication</a>
   <a href="#errors">⚠️ Error Handling</a>
 
-  <div class="sidebar-section-label">System</div>
-  <a href="#health">
+  <div class="sidebar-section-label">Identity & Security</div>
+  <a href="#auth-intro">🔐 Auth Standards</a>
+  <a href="#post-register">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Register
+  </a>
+  <a href="#post-login">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Login
+  </a>
+  <a href="#get-me">
     <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
-    Health Check
+    My Profile
+  </a>
+  <a href="#put-refresh">
+    <span class="method-tag" style="background:var(--purple-bg);color:var(--purple)">PUT</span>
+    Refresh Token
   </a>
 
-  <div class="sidebar-section-label">Categories</div>
+  <div class="sidebar-section-label">Smart AI Assistant</div>
+  <a href="#post-ai-questions">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Predefined Qs
+  </a>
+  <a href="#post-ai-faq">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Answer by ID
+  </a>
+  <a href="#post-ai-expert">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    AI Expert Chat
+  </a>
+
+  <div class="sidebar-section-label">Estimation Root</div>
   <a href="#get-categories">
     <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
     Root Categories
@@ -333,43 +359,31 @@
     <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
     Child Categories
   </a>
-  <a href="#get-leaf">
-    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
-    Leaf Detail
-  </a>
 
-  <div class="sidebar-section-label">Calculation</div>
+  <div class="sidebar-section-label">Calculations</div>
   <a href="#post-calculate">
     <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
-    Calculate (Preview)
+    Run Preview
   </a>
 
-  <div class="sidebar-section-label">Projects</div>
+  <div class="sidebar-section-label">Project Management</div>
   <a href="#get-projects">
     <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
     List Projects
   </a>
   <a href="#post-projects">
     <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
-    Create Project
-  </a>
-  <a href="#get-project">
-    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
-    Get Project
+    New Project
   </a>
   <a href="#get-estimation">
     <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
-    Get Estimation
+    Full Report
   </a>
 
-  <div class="sidebar-section-label">Estimation Leaves</div>
+  <div class="sidebar-section-label">Leaves</div>
   <a href="#post-save-leaf">
     <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
-    Save Leaf Result
-  </a>
-  <a href="#delete-leaf">
-    <span class="method-tag" style="background:var(--red-bg);color:var(--red)">DEL</span>
-    Remove Leaf
+    Save Result
   </a>
 </nav>
 
@@ -378,36 +392,36 @@
 
   <!-- ── Hero ─────────────────────────────────────────────────── -->
   <section class="hero" id="overview">
-    <div class="version-badge">⚡ v1.0.0 · Estimation Module</div>
-    <h1>Estimation API Contract</h1>
+    <div class="version-badge">⚡ v1.2.0 · Professional Platform Architecture</div>
+    <h1>Full Backend API Contract</h1>
     <p>
-      Complete REST API reference for the <strong>Estimation</strong> module.
-      This document covers category navigation, stateless cost calculations,
-      project lifecycle management, and detailed estimation storage.
+      Complete REST API reference for the <strong>Backend PFE Architecture</strong>.
+      This document centralizes security standards (JWT), AI-driven assistant endpoints,
+      and the comprehensive construction estimation engine.
     </p>
     <div class="meta">
-      <span>🌐 <strong>Base URL</strong> &nbsp;http://localhost:5000/api/estimation</span>
+      <span>🌐 <strong>Base URL</strong> &nbsp;<code>http://localhost:5000/api</code></span>
       <span>📦 <strong>Format</strong> &nbsp;JSON (application/json)</span>
-      <span>🔑 <strong>Auth</strong> &nbsp;x-user-id header (optional)</span>
+      <span>🔑 <strong>Security</strong> &nbsp;JWT Bearer Auth</span>
     </div>
   </section>
 
   <!-- ── Auth ─────────────────────────────────────────────────── -->
-  <section class="section" id="auth">
-    <div class="section-title">🔐 Authentication</div>
-    <p class="section-subtitle">How the API identifies the calling user.</p>
+  <section class="section" id="auth-intro">
+    <div class="section-title">🔐 Authentication & Security</div>
+    <p class="section-subtitle">Our API uses JSON Web Tokens (JWT) for secure identified access.</p>
 
     <div class="auth-header-box">
-      <h4>Request Header</h4>
+      <h4>Required Authorization Header</h4>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <thead><tr><th>Header</th><th>Format</th><th>Required</th><th>Description</th></tr></thead>
           <tbody>
             <tr>
-              <td class="field-name">x-user-id</td>
-              <td class="field-type">UUID string</td>
-              <td><span class="optional-badge">Optional</span></td>
-              <td>Authenticated user's UUID. When omitted, operations apply to anonymous / null-user resources.</td>
+              <td class="field-name">Authorization</td>
+              <td class="field-type">"Bearer &lt;access_token&gt;"</td>
+              <td><span class="required-badge">Required</span></td>
+              <td>Pass the <code>accessToken</code> returned by Login or Register in every protected request.</td>
             </tr>
           </tbody>
         </table>
@@ -416,20 +430,104 @@
 
     <div class="note info">
       <span class="note-icon">ℹ️</span>
-      <span>Endpoints that accept <code>x-user-id</code> will scope all returned records to that specific user. Omitting the header returns records where <code>user_id IS NULL</code>.</span>
+      <span>Tokens expire after 15 minutes. Use the <code>refreshToken</code> via the <code>/refresh</code> endpoint to obtain a new access token without logging in again.</span>
     </div>
   </section>
 
+  <!-- ── Auth Endpoints ────────────────────────────────────────── -->
+  <section class="section" id="post-register">
+    <div class="section-title">👤 Register</div>
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/register</span>
+        <span class="endpoint-summary">Create a new user account</span>
+        <span class="status-badge status-201">201</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Creates a new user in the system. Returns both access and refresh tokens immediately upon success.</p>
+        <div class="sub-heading">Request Body</div>
+        <pre>{
+  <span class="json-key">"name"</span>:     <span class="json-string">"John Doe"</span>,
+  <span class="json-key">"email"</span>:    <span class="json-string">"john@example.com"</span>,
+  <span class="json-key">"password"</span>: <span class="json-string">"secret123"</span>
+}</pre>
+        <div class="sub-heading">Response Example</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"user"</span>: { <span class="json-key">"id"</span>: <span class="json-string">"..."</span>, <span class="json-key">"email"</span>: <span class="json-string">"..."</span>, <span class="json-key">"role"</span>: <span class="json-string">"CLIENT"</span> },
+    <span class="json-key">"accessToken"</span>: <span class="json-string">"eyJ..."</span>,
+    <span class="json-key">"refreshToken"</span>: <span class="json-string">"eyJ..."</span>
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="post-login">
+    <div class="section-title">🔑 Login</div>
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/login</span>
+        <span class="endpoint-summary">Authenticate and get tokens</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="sub-heading">Request Body</div>
+        <pre>{
+  <span class="json-key">"email"</span>:    <span class="json-string">"john@example.com"</span>,
+  <span class="json-key">"password"</span>: <span class="json-string">"secret123"</span>
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="get-me">
+    <div class="section-title">👤 My Profile</div>
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/me</span>
+        <span class="endpoint-summary">Get current user details</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Requires <code>Authorization</code> header. Returns the user's profile information.</p>
+        <div class="sub-heading">Response Example</div>
+        <pre>{
+  <span class="json-key">"id"</span>: <span class="json-string">"..."</span>,
+  <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"john@example.com"</span>,
+  <span class="json-key">"role"</span>: <span class="json-string">"CLIENT"</span>
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="put-refresh">
+    <div class="section-title">🔄 Refresh Token</div>
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method PUT">PUT</span>
+        <span class="endpoint-path">/refresh</span>
+        <span class="endpoint-summary">Get a new access token</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="sub-heading">Request Body</div>
+        <pre>{
+  <span class="json-key">"refreshToken"</span>: <span class="json-string">"eyJ..."</span>
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
   <!-- ── Errors ────────────────────────────────────────────────── -->
   <section class="section" id="errors">
-    <div class="section-title">⚠️ Error Handling</div>
-    <p class="section-subtitle">All error responses share a consistent JSON envelope.</p>
-
-    <div class="code-label">Error Envelope</div>
-    <pre>
-<span class="json-key">"status"</span>:  <span class="json-string">"error"</span>              <span style="color:var(--text-dim)">// always "error"</span>
-<span class="json-key">"message"</span>: <span class="json-string">"Human-readable description"</span>
-<span class="json-key">"errors"</span>:  [...]            <span style="color:var(--text-dim)">// array of field-level issues (validation only)</span></pre>
 
     <div class="error-grid">
       <div class="code-cell" style="color:var(--green)">200 OK</div>
@@ -466,11 +564,83 @@
   <hr class="divider" />
 
   <!-- ══════════════════════════════════════════════════
+       SMART AI ASSISTANT
+  ══════════════════════════════════════════════════════ -->
+  <section class="section" id="post-ai-questions">
+    <div class="section-title">🤖 Smart AI Assistant</div>
+    <p class="section-subtitle">Intelligent chat services for FAQs and expert construction advice.</p>
+
+    <!-- Predefined Questions -->
+    <div class="endpoint" id="post-ai-questions">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/ai/questions</span>
+        <span class="endpoint-summary">Get predefined questions</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Fetches a list of recommended questions based on the user's current location in the app (e.g., 'home', 'project_list').</p>
+        <div class="sub-heading">Request Body</div>
+        <pre>{
+  <span class="json-key">"display_location"</span>: <span class="json-string">"home"</span>
+}</pre>
+        <div class="sub-heading">Response Example</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: [
+    { <span class="json-key">"question_id"</span>: <span class="json-number">1</span>, <span class="json-key">"question_text_en"</span>: <span class="json-string">"How to start?"</span> }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <!-- FAQ Answer -->
+    <div class="endpoint" id="post-ai-faq">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/ai/faq/<span class="path-param">:questionId</span></span>
+        <span class="endpoint-summary">Get answer for predefined question</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="sub-heading">Request Body</div>
+        <pre>{
+  <span class="json-key">"language"</span>: <span class="json-string">"en"</span> <span style="color:var(--text-dim)">// 'en' or 'ar'</span>
+}</pre>
+      </div>
+    </div>
+
+    <!-- AI Expert Chat -->
+    <div class="endpoint" id="post-ai-expert">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/ai/expert</span>
+        <span class="endpoint-summary">Chat with AI Expert</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Open-ended chat with a specialized construction AI agent.</p>
+        <div class="sub-heading">Request Body</div>
+        <pre>{
+  <span class="json-key">"user_message"</span>: <span class="json-string">"What is the best concrete mix for foundations?"</span>
+}</pre>
+        <div class="sub-heading">Response Example</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"reply"</span>: <span class="json-string">"For foundations, a C25/30 mix is typically recommended..."</span>
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ══════════════════════════════════════════════════
        SYSTEM
   ══════════════════════════════════════════════════════ -->
   <section class="section" id="health">
-    <div class="section-title">🩺 System</div>
-
     <!-- Health -->
     <div class="endpoint">
       <div class="endpoint-header">
@@ -938,10 +1108,10 @@
             <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
             <tbody>
               <tr>
-                <td class="field-name">x-user-id</td>
-                <td class="field-type">UUID</td>
-                <td><span class="optional-badge">Optional</span></td>
-                <td>Filters projects by user. Omit to retrieve anonymous projects.</td>
+                <td class="field-name">Authorization</td>
+                <td class="field-type">string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>Bearer JWT Token. Filters projects to the owner.</td>
               </tr>
             </tbody>
           </table>
@@ -1004,10 +1174,10 @@
             <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
             <tbody>
               <tr>
-                <td class="field-name">x-user-id</td>
-                <td class="field-type">UUID</td>
-                <td><span class="optional-badge">Optional</span></td>
-                <td>Owner of the project. Omit to create an anonymous project.</td>
+                <td class="field-name">Authorization</td>
+                <td class="field-type">string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>Bearer JWT Token.</td>
               </tr>
             </tbody>
           </table>
@@ -1121,10 +1291,10 @@
             <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
             <tbody>
               <tr>
-                <td class="field-name">x-user-id</td>
-                <td class="field-type">UUID</td>
-                <td><span class="optional-badge">Optional</span></td>
-                <td>Must match the project owner. If omitted, only anonymous projects are returned.</td>
+                <td class="field-name">Authorization</td>
+                <td class="field-type">string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>Bearer JWT Token.</td>
               </tr>
             </tbody>
           </table>
@@ -1494,7 +1664,7 @@
   <!-- ── Footer ────────────────────────────────────────── -->
   <hr class="divider" />
   <p style="font-size:12px;color:var(--text-dim);text-align:center;">
-    Estimation API Contract · Backend PFE · Generated April 2026 · Base URL: <code style="color:var(--accent)">http://localhost:5000/api/estimation</code>
+    Full Backend API Contract · Backend PFE · Updated April 2026 · Base URL: <code style="color:var(--accent)">http://localhost:5000/api</code>
   </p>
 
 </main>

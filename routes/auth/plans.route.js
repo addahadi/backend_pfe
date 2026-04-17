@@ -8,7 +8,7 @@ import { validate } from '../../middelwares/validate.js';
 import { createPlanSchema, updatePlanSchema } from '../../schemas/plan.schema.js';
 import { createPlan, updatePlan, getFeatures, getPlans } from '../../controllers/auth/plans.controller.js';
 
-import router from './auth.route.js';
+const router = express.Router();
 
 router.post('/plans', validate(createPlanSchema), createPlan);
 
