@@ -84,7 +84,6 @@ export const getAnswerByQuestionId = async (req, res, next) => {
         ar: data.answer_text_ar,
       },
       selectedLanguage: lang,
-      reply: lang === 'ar' ? data.answer_text_ar : data.answer_text_en,
       user_id: userId,
     });
   } catch (error) {
@@ -113,7 +112,7 @@ export const handleExpertStage = async (req, res, next) => {
     `;
 
     // 3. Return AI response
-    res.status(200).json({ reply: aiReply, user_id: userId });
+    res.status(200).json({ message: aiReply, user_id: userId });
   } catch (error) {
     next(error);
   }

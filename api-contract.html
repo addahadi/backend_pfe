@@ -586,10 +586,17 @@
 }</pre>
         <div class="sub-heading">Response Example</div>
         <pre>{
-  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
-  <span class="json-key">"data"</span>: [
-    { <span class="json-key">"question_id"</span>: <span class="json-number">1</span>, <span class="json-key">"question_text_en"</span>: <span class="json-string">"How to start?"</span> }
-  ]
+  <span class="json-key">"questions"</span>: [
+    {
+      <span class="json-key">"id"</span>: <span class="json-number">1</span>,
+      <span class="json-key">"language"</span>: {
+        <span class="json-key">"en"</span>: <span class="json-string">"How do I start a new estimation?"</span>,
+        <span class="json-key">"ar"</span>: <span class="json-string">"كيف أبدأ تقديرًا جديدًا؟"</span>
+      }
+    }
+  ],
+  <span class="json-key">"display_location"</span>: <span class="json-string">"home"</span>,
+  <span class="json-key">"user_id"</span>: <span class="json-string">"uuid-123"</span>
 }</pre>
       </div>
     </div>
@@ -605,7 +612,15 @@
       <div class="endpoint-body">
         <div class="sub-heading">Request Body</div>
         <pre>{
-  <span class="json-key">"language"</span>: <span class="json-string">"en"</span> <span style="color:var(--text-dim)">// 'en' or 'ar'</span>
+  <span class="json-key">"language"</span>: <span class="json-string">"en"</span> <span style="color:var(--text-dim)">// 'en' or 'ar' (optional, defaults to 'en')</span>
+}</pre>
+        <div class="sub-heading">Response Example</div>
+        <pre>{
+  <span class="json-key">"id"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"question"</span>: { <span class="json-key">"en"</span>: <span class="json-string">"..."</span>, <span class="json-key">"ar"</span>: <span class="json-string">"..."</span> },
+  <span class="json-key">"answer"</span>: { <span class="json-key">"en"</span>: <span class="json-string">"..."</span>, <span class="json-key">"ar"</span>: <span class="json-string">"..."</span> },
+  <span class="json-key">"selectedLanguage"</span>: <span class="json-string">"en"</span>,
+  <span class="json-key">"user_id"</span>: <span class="json-string">"uuid-123"</span>
 }</pre>
       </div>
     </div>
@@ -626,10 +641,8 @@
 }</pre>
         <div class="sub-heading">Response Example</div>
         <pre>{
-  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
-  <span class="json-key">"data"</span>: {
-    <span class="json-key">"reply"</span>: <span class="json-string">"For foundations, a C25/30 mix is typically recommended..."</span>
-  }
+  <span class="json-key">"message"</span>: <span class="json-string">"For foundations, a C25/30 mix is typically recommended..."</span>,
+  <span class="json-key">"user_id"</span>: <span class="json-string">"uuid-123"</span>
 }</pre>
       </div>
     </div>
