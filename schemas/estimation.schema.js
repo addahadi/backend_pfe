@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 const estimationSchema = z.object({
     budget_type: z.enum(['optimiste', 'pessimiste', 'normal']),
@@ -14,4 +14,4 @@ const estimationSchema = z.object({
     })).optional()
 });
 
-module.exports = { estimationSchema };
+export { estimationSchema };

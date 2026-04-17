@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -13,7 +14,7 @@ import subscriptionRoutes from './routes/auth/subscription.route.js';
 import settingRoutes from './routes/auth/settings.js';
 
 // External service routes
-import estimationRoutes from './routes/externalService/estimations.js';
+import estimationRoutes from './modules/estimation/routes.js';
 import materialRoutes from './routes/externalService/materials.js';
 import serviceRoutes from './routes/externalService/services.js';
 
@@ -39,5 +40,6 @@ app.use(errorHandler);
 app.use((req, res) => {
     res.status(404).json({ success: false, message: "الرابط المطلوب غير موجود" });
 });
+app.listen(5000, () => console.log('Server started on port 5000'));
 
 export default app;
