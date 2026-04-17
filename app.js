@@ -17,6 +17,9 @@ import estimationRoutes from './routes/externalService/estimations.js';
 import materialRoutes from './routes/externalService/materials.js';
 import serviceRoutes from './routes/externalService/services.js';
 
+// Module routes
+import estimationModuleRoutes from './modules/estimation/routes.js';
+
 const app = express();
 
 app.use(cors());
@@ -32,6 +35,9 @@ app.use('/api/estimations', estimationRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/settings', settingRoutes);
+
+// Estimation module
+app.use('/api/estimation', estimationModuleRoutes);
 
 app.use(errorHandler);
 

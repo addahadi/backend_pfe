@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estimation API Contract — Backend PFE</title>
+  <meta name="description" content="Complete API reference for the Estimation module of Backend PFE. Covers authentication, projects, categories, calculations, and estimation management." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --bg-card:     #161b22;
+      --bg-elevated: #1c2230;
+      --border:      #30363d;
+      --border-soft: #21262d;
+
+      --text:        #e6edf3;
+      --text-muted:  #8b949e;
+      --text-dim:    #6e7681;
+
+      --accent:      #58a6ff;
+      --accent-glow: rgba(88,166,255,.18);
+
+      --green:  #3fb950;  --green-bg:  rgba(63,185,80,.12);
+      --amber:  #d29922;  --amber-bg:  rgba(210,153,34,.12);
+      --red:    #f85149;  --red-bg:    rgba(248,81,73,.12);
+      --purple: #bc8cff;  --purple-bg: rgba(188,140,255,.12);
+      --teal:   #39d353;  --teal-bg:   rgba(57,211,83,.08);
+      --cyan:   #76e3ea;  --cyan-bg:   rgba(118,227,234,.10);
+
+      --radius: 10px;
+      --sidebar-w: 280px;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 28px 0 40px;
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 22px 24px;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 20px;
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
+      display: grid; place-items: center; font-size: 18px; flex-shrink: 0;
+    }
+    .sidebar-logo .logo-text { font-size: 13px; font-weight: 600; line-height: 1.3; }
+    .sidebar-logo .logo-sub  { font-size: 11px; color: var(--text-muted); }
+
+    .sidebar-section-label {
+      font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
+      color: var(--text-dim); text-transform: uppercase;
+      padding: 10px 22px 6px;
+    }
+
+    .sidebar a {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 22px;
+      color: var(--text-muted);
+      text-decoration: none; font-size: 13px;
+      border-left: 2px solid transparent;
+      transition: all .15s;
+    }
+    .sidebar a:hover { color: var(--text); background: var(--accent-glow); border-left-color: var(--accent); }
+    .sidebar a .method-tag {
+      font-size: 9.5px; font-weight: 700; font-family: var(--font-mono);
+      padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
+    }
+
+    /* ── Main ───────────────────────────────────────────────────── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      max-width: 900px;
+      padding: 52px 48px 100px;
+    }
+
+    /* ── Hero ───────────────────────────────────────────────────── */
+    .hero {
+      margin-bottom: 56px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero .version-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-glow); border: 1px solid rgba(88,166,255,.3);
+      color: var(--accent); font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 99px; margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 36px; font-weight: 700; line-height: 1.2;
+      background: linear-gradient(135deg, #e6edf3 0%, #8b949e 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+    }
+    .hero p { color: var(--text-muted); font-size: 15px; max-width: 640px; }
+    .hero .meta { display: flex; gap: 24px; margin-top: 22px; flex-wrap: wrap; }
+    .hero .meta span {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; color: var(--text-muted);
+    }
+    .hero .meta span strong { color: var(--text); }
+
+    /* ── Section ────────────────────────────────────────────────── */
+    .section { margin-bottom: 72px; }
+    .section-title {
+      font-size: 20px; font-weight: 700; margin-bottom: 6px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+
+    /* ── Endpoint Card ──────────────────────────────────────────── */
+    .endpoint {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 28px;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .endpoint:hover { border-color: rgba(88,166,255,.35); }
+
+    .endpoint-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 22px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .endpoint-header:hover { background: rgba(255,255,255,.02); }
+
+    .method {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      padding: 4px 10px; border-radius: 6px; flex-shrink: 0;
+      letter-spacing: .04em;
+    }
+    .method.GET    { background: var(--green-bg);  color: var(--green);  }
+    .method.POST   { background: var(--amber-bg);  color: var(--amber);  }
+    .method.DELETE { background: var(--red-bg);    color: var(--red);    }
+    .method.PATCH  { background: var(--purple-bg); color: var(--purple); }
+
+    .endpoint-path {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--text); flex: 1;
+    }
+    .endpoint-path .path-param { color: var(--cyan); }
+
+    .endpoint-summary { font-size: 13px; color: var(--text-muted); }
+    .status-badge {
+      font-size: 11px; font-weight: 600; font-family: var(--font-mono);
+      padding: 2px 9px; border-radius: 99px; white-space: nowrap;
+    }
+    .status-200 { background: var(--green-bg);  color: var(--green);  }
+    .status-201 { background: var(--teal-bg);   color: var(--teal);   }
+    .status-400 { background: var(--amber-bg);  color: var(--amber);  }
+    .status-404 { background: var(--red-bg);    color: var(--red);    }
+    .status-500 { background: var(--red-bg);    color: var(--red);    }
+
+    /* ── Endpoint Body ──────────────────────────────────────────── */
+    .endpoint-body { padding: 0 22px 22px; }
+
+    .ep-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.7; }
+
+    /* ── Tables ─────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      background: var(--bg-elevated); color: var(--text-muted);
+      font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    tbody td {
+      padding: 10px 14px; border-bottom: 1px solid var(--border-soft);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+    .field-name {
+      font-family: var(--font-mono); font-size: 12.5px; color: var(--cyan);
+    }
+    .field-type {
+      font-family: var(--font-mono); font-size: 12px; color: var(--purple);
+    }
+    .required-badge {
+      font-size: 10px; font-weight: 700; color: var(--red);
+      background: var(--red-bg); padding: 1px 6px; border-radius: 4px;
+    }
+    .optional-badge {
+      font-size: 10px; font-weight: 700; color: var(--text-dim);
+      background: rgba(110,118,129,.15); padding: 1px 6px; border-radius: 4px;
+    }
+
+    /* ── Code Blocks ────────────────────────────────────────────── */
+    .code-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 8px; margin-top: 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .code-label .status-badges { display: flex; gap: 6px; }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    /* JSON syntax highlighting */
+    .json-key    { color: #79c0ff; }
+    .json-string { color: #a5d6ff; }
+    .json-number { color: #ffa657; }
+    .json-bool   { color: var(--purple); }
+    .json-null   { color: var(--red); }
+
+    /* ── Sub-headings inside endpoint ───────────────────────────── */
+    .sub-heading {
+      font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--accent); margin: 22px 0 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sub-heading::after {
+      content: ''; flex: 1; height: 1px; background: var(--border-soft);
+    }
+
+    /* ── Notes / Warning boxes ──────────────────────────────────── */
+    .note {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 13px 16px; border-radius: 8px;
+      font-size: 13px; margin: 14px 0;
+    }
+    .note.info   { background: var(--accent-glow); border: 1px solid rgba(88,166,255,.25); color: #a0c4f5; }
+    .note.warn   { background: var(--amber-bg);    border: 1px solid rgba(210,153,34,.25); color: #d4b483; }
+    .note.danger { background: var(--red-bg);      border: 1px solid rgba(248,81,73,.25);  color: #f0a09c; }
+    .note-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Auth section special ───────────────────────────────────── */
+    .auth-header-box {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px; margin-bottom: 20px;
+    }
+    .auth-header-box h4 { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+
+    /* ── Error reference table ──────────────────────────────────── */
+    .error-grid {
+      display: grid; grid-template-columns: 100px 1fr;
+      gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .error-grid > * { padding: 10px 16px; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
+    .error-grid > *:nth-last-child(-n+2) { border-bottom: none; }
+    .error-grid .code-cell { font-family: var(--font-mono); font-weight: 600; background: var(--bg-elevated); }
+
+    /* ── Divider ────────────────────────────────────────────────── */
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    /* ── Scrollbar ──────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 28px 20px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ SIDEBAR ════════════════════════════ -->
+<nav class="sidebar" aria-label="API Navigation">
+  <div class="sidebar-logo">
+    <div class="logo-icon">📐</div>
+    <div>
+      <div class="logo-text">Estimation API</div>
+      <div class="logo-sub">v1.0 · REST Reference</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">General</div>
+  <a href="#overview">📋 Overview</a>
+  <a href="#auth">🔐 Authentication</a>
+  <a href="#errors">⚠️ Error Handling</a>
+
+  <div class="sidebar-section-label">System</div>
+  <a href="#health">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    Health Check
+  </a>
+
+  <div class="sidebar-section-label">Categories</div>
+  <a href="#get-categories">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    Root Categories
+  </a>
+  <a href="#get-children">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    Child Categories
+  </a>
+  <a href="#get-leaf">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    Leaf Detail
+  </a>
+
+  <div class="sidebar-section-label">Calculation</div>
+  <a href="#post-calculate">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Calculate (Preview)
+  </a>
+
+  <div class="sidebar-section-label">Projects</div>
+  <a href="#get-projects">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    List Projects
+  </a>
+  <a href="#post-projects">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Create Project
+  </a>
+  <a href="#get-project">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    Get Project
+  </a>
+  <a href="#get-estimation">
+    <span class="method-tag" style="background:var(--green-bg);color:var(--green)">GET</span>
+    Get Estimation
+  </a>
+
+  <div class="sidebar-section-label">Estimation Leaves</div>
+  <a href="#post-save-leaf">
+    <span class="method-tag" style="background:var(--amber-bg);color:var(--amber)">POST</span>
+    Save Leaf Result
+  </a>
+  <a href="#delete-leaf">
+    <span class="method-tag" style="background:var(--red-bg);color:var(--red)">DEL</span>
+    Remove Leaf
+  </a>
+</nav>
+
+<!-- ═══════════════════════════ MAIN ════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── Hero ─────────────────────────────────────────────────── -->
+  <section class="hero" id="overview">
+    <div class="version-badge">⚡ v1.0.0 · Estimation Module</div>
+    <h1>Estimation API Contract</h1>
+    <p>
+      Complete REST API reference for the <strong>Estimation</strong> module.
+      This document covers category navigation, stateless cost calculations,
+      project lifecycle management, and detailed estimation storage.
+    </p>
+    <div class="meta">
+      <span>🌐 <strong>Base URL</strong> &nbsp;http://localhost:5000/api/estimation</span>
+      <span>📦 <strong>Format</strong> &nbsp;JSON (application/json)</span>
+      <span>🔑 <strong>Auth</strong> &nbsp;x-user-id header (optional)</span>
+    </div>
+  </section>
+
+  <!-- ── Auth ─────────────────────────────────────────────────── -->
+  <section class="section" id="auth">
+    <div class="section-title">🔐 Authentication</div>
+    <p class="section-subtitle">How the API identifies the calling user.</p>
+
+    <div class="auth-header-box">
+      <h4>Request Header</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="field-name">x-user-id</td>
+              <td class="field-type">UUID string</td>
+              <td><span class="optional-badge">Optional</span></td>
+              <td>Authenticated user's UUID. When omitted, operations apply to anonymous / null-user resources.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="note-icon">ℹ️</span>
+      <span>Endpoints that accept <code>x-user-id</code> will scope all returned records to that specific user. Omitting the header returns records where <code>user_id IS NULL</code>.</span>
+    </div>
+  </section>
+
+  <!-- ── Errors ────────────────────────────────────────────────── -->
+  <section class="section" id="errors">
+    <div class="section-title">⚠️ Error Handling</div>
+    <p class="section-subtitle">All error responses share a consistent JSON envelope.</p>
+
+    <div class="code-label">Error Envelope</div>
+    <pre>
+<span class="json-key">"status"</span>:  <span class="json-string">"error"</span>              <span style="color:var(--text-dim)">// always "error"</span>
+<span class="json-key">"message"</span>: <span class="json-string">"Human-readable description"</span>
+<span class="json-key">"errors"</span>:  [...]            <span style="color:var(--text-dim)">// array of field-level issues (validation only)</span></pre>
+
+    <div class="error-grid">
+      <div class="code-cell" style="color:var(--green)">200 OK</div>
+      <div>Standard success — resource returned.</div>
+      <div class="code-cell" style="color:var(--teal)">201 Created</div>
+      <div>Resource was created successfully.</div>
+      <div class="code-cell" style="color:var(--amber)">400 Bad Request</div>
+      <div>Validation failed — check the <code>errors</code> array for field details.</div>
+      <div class="code-cell" style="color:var(--red)">404 Not Found</div>
+      <div>The requested resource does not exist.</div>
+      <div class="code-cell" style="color:var(--red)">500 Internal Error</div>
+      <div>Unexpected server error. Check server logs.</div>
+    </div>
+
+    <div class="code-label" style="margin-top:22px">Example — 400 Validation Error</div>
+    <pre>{
+  <span class="json-key">"status"</span>:  <span class="json-string">"error"</span>,
+  <span class="json-key">"message"</span>: <span class="json-string">"Validation failed"</span>,
+  <span class="json-key">"errors"</span>: [
+    {
+      <span class="json-key">"field"</span>:   <span class="json-string">"category_id"</span>,
+      <span class="json-key">"message"</span>: <span class="json-string">"Invalid UUID format"</span>
+    }
+  ]
+}</pre>
+
+    <div class="code-label">Example — 404 Not Found</div>
+    <pre>{
+  <span class="json-key">"status"</span>:  <span class="json-string">"error"</span>,
+  <span class="json-key">"message"</span>: <span class="json-string">"Project not found"</span>
+}</pre>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ══════════════════════════════════════════════════
+       SYSTEM
+  ══════════════════════════════════════════════════════ -->
+  <section class="section" id="health">
+    <div class="section-title">🩺 System</div>
+
+    <!-- Health -->
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/health</span>
+        <span class="endpoint-summary">Server liveness probe</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Returns the current operational status of the Estimation service. Use this endpoint for health checks and uptime monitoring.</p>
+
+        <div class="sub-heading">Inputs</div>
+        <p style="font-size:13px;color:var(--text-muted)">None — no headers, params, or body required.</p>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">status</td><td class="field-type">string</td><td>Always <code>"ok"</code> when the service is running.</td></tr>
+              <tr><td class="field-name">timestamp</td><td class="field-type">ISO 8601 string</td><td>Server time at the moment of the request.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Response</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"status"</span>:    <span class="json-string">"ok"</span>,
+    <span class="json-key">"timestamp"</span>: <span class="json-string">"2026-04-13T20:31:45.123Z"</span>
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       CATEGORIES
+  ══════════════════════════════════════════════════════ -->
+  <section class="section" id="get-categories">
+    <div class="section-title">🗂️ Categories</div>
+    <p class="section-subtitle">
+      Categories form a tree (ROOT → BRANCH → LEAF). Navigate top-down:
+      fetch roots, pick one, drill into children, until you reach a LEAF
+      which carries the formulas and material configs.
+    </p>
+
+    <!-- Root Categories -->
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/categories</span>
+        <span class="endpoint-summary">List root categories</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Returns all active top-level (ROOT) categories. These are the main tiles shown on the application home screen.</p>
+
+        <div class="sub-heading">Inputs</div>
+        <p style="font-size:13px;color:var(--text-muted)">None — no parameters required.</p>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <p class="ep-desc">Returns a <code>data</code> array of category objects.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">category_id</td><td class="field-type">UUID</td><td>Unique identifier for this category.</td></tr>
+              <tr><td class="field-name">name_en</td><td class="field-type">string</td><td>Display name in English.</td></tr>
+              <tr><td class="field-name">name_ar</td><td class="field-type">string</td><td>Display name in Arabic.</td></tr>
+              <tr><td class="field-name">icon</td><td class="field-type">string | null</td><td>Icon identifier or URL for the category.</td></tr>
+              <tr><td class="field-name">sort_order</td><td class="field-type">integer</td><td>Determines the display order (ascending).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Response</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: [
+    {
+      <span class="json-key">"category_id"</span>: <span class="json-string">"a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span>,
+      <span class="json-key">"name_en"</span>:    <span class="json-string">"Civil Works"</span>,
+      <span class="json-key">"name_ar"</span>:    <span class="json-string">"أعمال مدنية"</span>,
+      <span class="json-key">"icon"</span>:       <span class="json-string">"🏗️"</span>,
+      <span class="json-key">"sort_order"</span>: <span class="json-number">1</span>
+    },
+    {
+      <span class="json-key">"category_id"</span>: <span class="json-string">"b2c3d4e5-f6a7-8901-bcde-f12345678901"</span>,
+      <span class="json-key">"name_en"</span>:    <span class="json-string">"Electrical"</span>,
+      <span class="json-key">"name_ar"</span>:    <span class="json-string">"أعمال كهربائية"</span>,
+      <span class="json-key">"icon"</span>:       <span class="json-string">"⚡"</span>,
+      <span class="json-key">"sort_order"</span>: <span class="json-number">2</span>
+    }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <!-- Children -->
+    <div class="endpoint" id="get-children">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/categories/<span class="path-param">:id</span>/children</span>
+        <span class="endpoint-summary">List child categories</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Returns all active direct children of the given category. Use this to progressively navigate the tree.</p>
+
+        <div class="sub-heading">Path Parameters</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The <code>category_id</code> of the parent whose children to retrieve.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">category_id</td><td class="field-type">UUID</td><td>Unique identifier.</td></tr>
+              <tr><td class="field-name">parent_id</td><td class="field-type">UUID</td><td>The parent category's ID.</td></tr>
+              <tr><td class="field-name">category_level</td><td class="field-type">enum</td><td><code>ROOT</code> | <code>BRANCH</code> | <code>LEAF</code></td></tr>
+              <tr><td class="field-name">name_en</td><td class="field-type">string</td><td>English display name.</td></tr>
+              <tr><td class="field-name">name_ar</td><td class="field-type">string</td><td>Arabic display name.</td></tr>
+              <tr><td class="field-name">icon</td><td class="field-type">string | null</td><td>Icon identifier.</td></tr>
+              <tr><td class="field-name">sort_order</td><td class="field-type">integer</td><td>Display order.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Request</div>
+        <pre>GET /api/estimation/categories/a1b2c3d4-e5f6-7890-abcd-ef1234567890/children</pre>
+
+        <div class="code-label">Example Response</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: [
+    {
+      <span class="json-key">"category_id"</span>:    <span class="json-string">"c3d4e5f6-a7b8-9012-cdef-012345678902"</span>,
+      <span class="json-key">"parent_id"</span>:      <span class="json-string">"a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span>,
+      <span class="json-key">"category_level"</span>: <span class="json-string">"BRANCH"</span>,
+      <span class="json-key">"name_en"</span>:         <span class="json-string">"Concrete Works"</span>,
+      <span class="json-key">"name_ar"</span>:         <span class="json-string">"أعمال خرسانية"</span>,
+      <span class="json-key">"icon"</span>:            <span class="json-null">null</span>,
+      <span class="json-key">"sort_order"</span>:     <span class="json-number">1</span>
+    }
+  ]
+}</pre>
+
+        <div class="note info">
+          <span class="note-icon">ℹ️</span>
+          <span>If the <code>category_level</code> of any child is <code>LEAF</code>, it's ready to call <code>/leaf</code> on to retrieve formulas.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaf Detail -->
+    <div class="endpoint" id="get-leaf">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/categories/<span class="path-param">:id</span>/leaf</span>
+        <span class="endpoint-summary">Leaf details with formulas & material configs</span>
+        <span class="status-badge status-200">200</span>
+        <span class="status-badge status-404">404</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">
+          Fetches the complete specification of a leaf category: category metadata, all available
+          calculation formulas (each with their input field definitions), and all material
+          configuration presets. Call this once when the user reaches a leaf node.
+        </p>
+
+        <div class="sub-heading">Path Parameters</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The <code>category_id</code> of a LEAF node.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">category_id</td><td class="field-type">UUID</td><td>ID of this leaf category.</td></tr>
+              <tr><td class="field-name">parent_id</td><td class="field-type">UUID</td><td>Parent category ID.</td></tr>
+              <tr><td class="field-name">category_level</td><td class="field-type">string</td><td>Typically <code>"LEAF"</code>.</td></tr>
+              <tr><td class="field-name">name_en</td><td class="field-type">string</td><td>English name.</td></tr>
+              <tr><td class="field-name">name_ar</td><td class="field-type">string</td><td>Arabic name.</td></tr>
+              <tr><td class="field-name">icon</td><td class="field-type">string | null</td><td>Icon.</td></tr>
+              <tr><td class="field-name">formulas</td><td class="field-type">Formula[]</td><td>Array of available formulas (see sub-table below).</td></tr>
+              <tr><td class="field-name">configs</td><td class="field-type">Config[]</td><td>Array of material configuration presets.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="sub-heading" style="margin-top:16px">Formula Object</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">formula_id</td><td class="field-type">UUID</td><td>Unique formula identifier. Pass as <code>selected_formula_id</code> to calculate.</td></tr>
+              <tr><td class="field-name">name</td><td class="field-type">string</td><td>Human-friendly formula name.</td></tr>
+              <tr><td class="field-name">expression</td><td class="field-type">string</td><td>Mathematical expression (e.g. <code>"L * l * h"</code>).</td></tr>
+              <tr><td class="field-name">version</td><td class="field-type">integer</td><td>Version number for snapshot tracking.</td></tr>
+              <tr><td class="field-name">output_unit_symbol</td><td class="field-type">string</td><td>Unit of the formula result (e.g. <code>"m³"</code>).</td></tr>
+              <tr><td class="field-name">fields</td><td class="field-type">FieldDef[]</td><td>Input field definitions (see below).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="sub-heading" style="margin-top:16px">Field Definition Object (inside formula.fields)</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">field_id</td><td class="field-type">UUID</td><td>The key to use in <code>field_values</code> when calling <code>/calculate</code>.</td></tr>
+              <tr><td class="field-name">label</td><td class="field-type">string</td><td>Display label (e.g. <code>"Length"</code>).</td></tr>
+              <tr><td class="field-name">required</td><td class="field-type">boolean</td><td>Whether the field must be supplied.</td></tr>
+              <tr><td class="field-name">default_value</td><td class="field-type">number | null</td><td>Pre-filled value the UI can show.</td></tr>
+              <tr><td class="field-name">sort_order</td><td class="field-type">integer</td><td>Display order in the form.</td></tr>
+              <tr><td class="field-name">unit_symbol</td><td class="field-type">string</td><td>Unit for this field (e.g. <code>"m"</code>).</td></tr>
+              <tr><td class="field-name">is_computed</td><td class="field-type">boolean</td><td><code>true</code> if the value is derived from another formula (read-only field).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="sub-heading" style="margin-top:16px">Config Object</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">config_id</td><td class="field-type">UUID</td><td>Pass as <code>selected_config_id</code> to calculate / save.</td></tr>
+              <tr><td class="field-name">name</td><td class="field-type">string</td><td>Config name (e.g. <code>"Standard Mix"</code>).</td></tr>
+              <tr><td class="field-name">description</td><td class="field-type">string | null</td><td>Optional description.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Response</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"category_id"</span>:    <span class="json-string">"d4e5f6a7-b8c9-0123-def0-123456789012"</span>,
+    <span class="json-key">"parent_id"</span>:      <span class="json-string">"c3d4e5f6-a7b8-9012-cdef-012345678902"</span>,
+    <span class="json-key">"category_level"</span>: <span class="json-string">"LEAF"</span>,
+    <span class="json-key">"name_en"</span>:         <span class="json-string">"Slab Concrete"</span>,
+    <span class="json-key">"name_ar"</span>:         <span class="json-string">"خرسانة البلاطة"</span>,
+    <span class="json-key">"icon"</span>:            <span class="json-null">null</span>,
+    <span class="json-key">"formulas"</span>: [
+      {
+        <span class="json-key">"formula_id"</span>:         <span class="json-string">"e5f6a7b8-c9d0-1234-ef01-234567890123"</span>,
+        <span class="json-key">"name"</span>:               <span class="json-string">"Volume Calculation"</span>,
+        <span class="json-key">"expression"</span>:         <span class="json-string">"L * l * h"</span>,
+        <span class="json-key">"version"</span>:            <span class="json-number">1</span>,
+        <span class="json-key">"output_unit_symbol"</span>: <span class="json-string">"m³"</span>,
+        <span class="json-key">"fields"</span>: [
+          {
+            <span class="json-key">"field_id"</span>:      <span class="json-string">"f6a7b8c9-d0e1-2345-f012-345678901234"</span>,
+            <span class="json-key">"label"</span>:        <span class="json-string">"Length"</span>,
+            <span class="json-key">"required"</span>:     <span class="json-bool">true</span>,
+            <span class="json-key">"default_value"</span>: <span class="json-number">5</span>,
+            <span class="json-key">"sort_order"</span>:   <span class="json-number">1</span>,
+            <span class="json-key">"unit_symbol"</span>:  <span class="json-string">"m"</span>,
+            <span class="json-key">"is_computed"</span>:  <span class="json-bool">false</span>
+          },
+          {
+            <span class="json-key">"field_id"</span>:      <span class="json-string">"a7b8c9d0-e1f2-3456-0123-456789012345"</span>,
+            <span class="json-key">"label"</span>:        <span class="json-string">"Width"</span>,
+            <span class="json-key">"required"</span>:     <span class="json-bool">true</span>,
+            <span class="json-key">"default_value"</span>: <span class="json-number">4</span>,
+            <span class="json-key">"sort_order"</span>:   <span class="json-number">2</span>,
+            <span class="json-key">"unit_symbol"</span>:  <span class="json-string">"m"</span>,
+            <span class="json-key">"is_computed"</span>:  <span class="json-bool">false</span>
+          },
+          {
+            <span class="json-key">"field_id"</span>:      <span class="json-string">"b8c9d0e1-f2a3-4567-1234-567890123456"</span>,
+            <span class="json-key">"label"</span>:        <span class="json-string">"Thickness"</span>,
+            <span class="json-key">"required"</span>:     <span class="json-bool">true</span>,
+            <span class="json-key">"default_value"</span>: <span class="json-number">0.2</span>,
+            <span class="json-key">"sort_order"</span>:   <span class="json-number">3</span>,
+            <span class="json-key">"unit_symbol"</span>:  <span class="json-string">"m"</span>,
+            <span class="json-key">"is_computed"</span>:  <span class="json-bool">false</span>
+          }
+        ]
+      }
+    ],
+    <span class="json-key">"configs"</span>: [
+      {
+        <span class="json-key">"config_id"</span>:   <span class="json-string">"c9d0e1f2-a3b4-5678-2345-678901234567"</span>,
+        <span class="json-key">"name"</span>:        <span class="json-string">"Standard Mix B25"</span>,
+        <span class="json-key">"description"</span>: <span class="json-string">"Standard concrete mix with B25 specification"</span>
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       CALCULATE
+  ══════════════════════════════════════════════════════ -->
+  <section class="section" id="post-calculate">
+    <div class="section-title">🧮 Calculation (Stateless Preview)</div>
+    <p class="section-subtitle">Runs the calculation engine without persisting any data. The frontend uses this to show live results before the user decides to save.</p>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/calculate</span>
+        <span class="endpoint-summary">Run a cost calculation preview</span>
+        <span class="status-badge status-200">200</span>
+        <span class="status-badge status-400">400</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">
+          Accepts the user's selected formula, material configuration, and input field values,
+          then returns the computed quantities, material costs, and grand total. Nothing is saved to the database.
+        </p>
+
+        <div class="note warn">
+          <span class="note-icon">⚠️</span>
+          <span><strong>Important:</strong> The keys of <code>field_values</code> must be the <code>field_id</code> UUIDs returned by <code>/categories/:id/leaf</code>, NOT short variable names like <code>"L"</code> or <code>"l"</code>.</span>
+        </div>
+
+        <div class="sub-heading">Request Body</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">category_id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The leaf category being estimated.</td>
+              </tr>
+              <tr>
+                <td class="field-name">selected_formula_id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The formula to use for calculation (from <code>formulas[].formula_id</code>).</td>
+              </tr>
+              <tr>
+                <td class="field-name">selected_config_id</td>
+                <td class="field-type">UUID | null</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Material configuration preset. Pass <code>null</code> if not applicable.</td>
+              </tr>
+              <tr>
+                <td class="field-name">field_values</td>
+                <td class="field-type">Record&lt;UUID, number&gt;</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>Map of <code>{ field_id → numeric_value }</code>. Must have at least one entry.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">results</td><td class="field-type">object</td><td>Computed formula output keyed by expression variable (e.g. <code>{ "volume": 4.0 }</code>).</td></tr>
+              <tr><td class="field-name">material_lines</td><td class="field-type">MaterialLine[]</td><td>Per-material cost breakdown.</td></tr>
+              <tr><td class="field-name">total_cost</td><td class="field-type">number</td><td>Grand total cost across all materials.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Request Body</div>
+        <pre>{
+  <span class="json-key">"category_id"</span>:         <span class="json-string">"d4e5f6a7-b8c9-0123-def0-123456789012"</span>,
+  <span class="json-key">"selected_formula_id"</span>:  <span class="json-string">"e5f6a7b8-c9d0-1234-ef01-234567890123"</span>,
+  <span class="json-key">"selected_config_id"</span>:   <span class="json-string">"c9d0e1f2-a3b4-5678-2345-678901234567"</span>,
+  <span class="json-key">"field_values"</span>: {
+    <span class="json-key">"f6a7b8c9-d0e1-2345-f012-345678901234"</span>: <span class="json-number">5</span>,
+    <span class="json-key">"a7b8c9d0-e1f2-3456-0123-456789012345"</span>: <span class="json-number">4</span>,
+    <span class="json-key">"b8c9d0e1-f2a3-4567-1234-567890123456"</span>: <span class="json-number">0.2</span>
+  }
+}</pre>
+
+        <div class="code-label">Example Response — 200 OK</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"results"</span>: {
+      <span class="json-key">"volume"</span>: <span class="json-number">4.0</span>
+    },
+    <span class="json-key">"material_lines"</span>: [
+      {
+        <span class="json-key">"material_id"</span>:           <span class="json-string">"mat-uuid-001"</span>,
+        <span class="json-key">"material_name"</span>:         <span class="json-string">"Portland Cement"</span>,
+        <span class="json-key">"material_type"</span>:         <span class="json-string">"PRIMARY"</span>,
+        <span class="json-key">"quantity"</span>:              <span class="json-number">1.6</span>,
+        <span class="json-key">"applied_waste"</span>:         <span class="json-number">0.05</span>,
+        <span class="json-key">"quantity_with_waste"</span>:   <span class="json-number">1.68</span>,
+        <span class="json-key">"unit_price_snapshot"</span>:   <span class="json-number">4500</span>,
+        <span class="json-key">"waste_factor_snapshot"</span>: <span class="json-number">0.05</span>,
+        <span class="json-key">"sub_total"</span>:             <span class="json-number">7560</span>
+      }
+    ],
+    <span class="json-key">"total_cost"</span>: <span class="json-number">7560</span>
+  }
+}</pre>
+
+        <div class="code-label">Example Response — 400 Validation Error</div>
+        <pre>{
+  <span class="json-key">"status"</span>:  <span class="json-string">"error"</span>,
+  <span class="json-key">"message"</span>: <span class="json-string">"Validation failed"</span>,
+  <span class="json-key">"errors"</span>: [
+    { <span class="json-key">"field"</span>: <span class="json-string">"category_id"</span>, <span class="json-key">"message"</span>: <span class="json-string">"Invalid UUID format"</span> },
+    { <span class="json-key">"field"</span>: <span class="json-string">"field_values"</span>, <span class="json-key">"message"</span>: <span class="json-string">"field_values must not be empty"</span> }
+  ]
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       PROJECTS
+  ══════════════════════════════════════════════════════ -->
+  <section class="section" id="get-projects">
+    <div class="section-title">📁 Projects</div>
+    <p class="section-subtitle">
+      A project groups one or more leaf estimations under a single budget envelope.
+      Creating a project automatically creates its associated <code>estimation</code> record.
+    </p>
+
+    <!-- List Projects -->
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/projects</span>
+        <span class="endpoint-summary">List all projects for the current user</span>
+        <span class="status-badge status-200">200</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Returns a summary list of all projects belonging to the user identified by <code>x-user-id</code>. Includes a leaf count and total cost rolled up from material lines.</p>
+
+        <div class="sub-heading">Request Headers</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">x-user-id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Filters projects by user. Omit to retrieve anonymous projects.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">project_id</td><td class="field-type">UUID</td><td>Project identifier.</td></tr>
+              <tr><td class="field-name">name</td><td class="field-type">string</td><td>Project name.</td></tr>
+              <tr><td class="field-name">description</td><td class="field-type">string | null</td><td>Optional description.</td></tr>
+              <tr><td class="field-name">status</td><td class="field-type">enum</td><td><code>ACTIVE</code> | <code>ARCHIVED</code></td></tr>
+              <tr><td class="field-name">created_at</td><td class="field-type">ISO 8601</td><td>Creation timestamp.</td></tr>
+              <tr><td class="field-name">estimation_id</td><td class="field-type">UUID</td><td>Linked estimation record ID.</td></tr>
+              <tr><td class="field-name">total_cost</td><td class="field-type">float</td><td>Sum of all material sub-totals in this project's estimation.</td></tr>
+              <tr><td class="field-name">leaf_count</td><td class="field-type">integer</td><td>Number of saved leaf calculations.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Response</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: [
+    {
+      <span class="json-key">"project_id"</span>:   <span class="json-string">"11aabbcc-1122-3344-5566-778899aabbcc"</span>,
+      <span class="json-key">"name"</span>:          <span class="json-string">"Villa Construction 2026"</span>,
+      <span class="json-key">"description"</span>:  <span class="json-string">"Full estimation for a 4-bedroom villa"</span>,
+      <span class="json-key">"status"</span>:        <span class="json-string">"ACTIVE"</span>,
+      <span class="json-key">"created_at"</span>:    <span class="json-string">"2026-04-13T18:00:00.000Z"</span>,
+      <span class="json-key">"estimation_id"</span>: <span class="json-string">"22bbccdd-2233-4455-6677-8899aabbccdd"</span>,
+      <span class="json-key">"total_cost"</span>:    <span class="json-number">485000</span>,
+      <span class="json-key">"leaf_count"</span>:    <span class="json-number">7</span>
+    }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <!-- Create Project -->
+    <div class="endpoint" id="post-projects">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/projects</span>
+        <span class="endpoint-summary">Create a new project</span>
+        <span class="status-badge status-201">201</span>
+        <span class="status-badge status-400">400</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">
+          Creates a new project and automatically provisions an <code>estimation</code> record
+          linked to it (in a single atomic transaction). Returns the combined project + estimation info.
+        </p>
+
+        <div class="sub-heading">Request Headers</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">x-user-id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Owner of the project. Omit to create an anonymous project.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Request Body</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">name</td>
+                <td class="field-type">string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>1–200 characters</td>
+                <td>Project title.</td>
+              </tr>
+              <tr>
+                <td class="field-name">description</td>
+                <td class="field-type">string</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>max 1000 chars</td>
+                <td>Detailed description of the project scope.</td>
+              </tr>
+              <tr>
+                <td class="field-name">budget_type</td>
+                <td class="field-type">enum</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td><code>FIXED</code> | <code>FLEXIBLE</code></td>
+                <td>Budget mode. Defaults to <code>FLEXIBLE</code>.</td>
+              </tr>
+              <tr>
+                <td class="field-name">total_budget</td>
+                <td class="field-type">number</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Positive number</td>
+                <td>Target budget cap (used for FIXED mode).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 201 Created</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">project_id</td><td class="field-type">UUID</td><td>Newly created project ID.</td></tr>
+              <tr><td class="field-name">name</td><td class="field-type">string</td><td>Project name.</td></tr>
+              <tr><td class="field-name">description</td><td class="field-type">string | null</td><td>Description.</td></tr>
+              <tr><td class="field-name">status</td><td class="field-type">string</td><td>Always <code>"ACTIVE"</code> on creation.</td></tr>
+              <tr><td class="field-name">created_at</td><td class="field-type">ISO 8601</td><td>Creation timestamp.</td></tr>
+              <tr><td class="field-name">estimation_id</td><td class="field-type">UUID</td><td>Auto-created estimation linked to this project.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Request Body</div>
+        <pre>{
+  <span class="json-key">"name"</span>:         <span class="json-string">"Villa Construction 2026"</span>,
+  <span class="json-key">"description"</span>:  <span class="json-string">"Full estimation for a 4-bedroom villa"</span>,
+  <span class="json-key">"budget_type"</span>:  <span class="json-string">"FLEXIBLE"</span>,
+  <span class="json-key">"total_budget"</span>: <span class="json-number">500000</span>
+}</pre>
+
+        <div class="code-label">Example Response — 201 Created</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"project_id"</span>:   <span class="json-string">"11aabbcc-1122-3344-5566-778899aabbcc"</span>,
+    <span class="json-key">"name"</span>:          <span class="json-string">"Villa Construction 2026"</span>,
+    <span class="json-key">"description"</span>:  <span class="json-string">"Full estimation for a 4-bedroom villa"</span>,
+    <span class="json-key">"status"</span>:        <span class="json-string">"ACTIVE"</span>,
+    <span class="json-key">"created_at"</span>:    <span class="json-string">"2026-04-13T21:55:00.123Z"</span>,
+    <span class="json-key">"estimation_id"</span>: <span class="json-string">"22bbccdd-2233-4455-6677-8899aabbccdd"</span>
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Get Single Project -->
+    <div class="endpoint" id="get-project">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/projects/<span class="path-param">:id</span></span>
+        <span class="endpoint-summary">Get a single project</span>
+        <span class="status-badge status-200">200</span>
+        <span class="status-badge status-404">404</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">Retrieves full project metadata including its linked estimation ID and accumulated cost.</p>
+
+        <div class="sub-heading">Path Parameters</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The project's UUID.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Request Headers</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Header</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">x-user-id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Must match the project owner. If omitted, only anonymous projects are returned.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">project_id</td><td class="field-type">UUID</td><td>Project identifier.</td></tr>
+              <tr><td class="field-name">user_id</td><td class="field-type">UUID | null</td><td>Owner's user ID.</td></tr>
+              <tr><td class="field-name">name</td><td class="field-type">string</td><td>Project name.</td></tr>
+              <tr><td class="field-name">description</td><td class="field-type">string | null</td><td>Optional description.</td></tr>
+              <tr><td class="field-name">status</td><td class="field-type">string</td><td>Project status.</td></tr>
+              <tr><td class="field-name">created_at</td><td class="field-type">ISO 8601</td><td>Creation timestamp.</td></tr>
+              <tr><td class="field-name">estimation_id</td><td class="field-type">UUID</td><td>Linked estimation ID.</td></tr>
+              <tr><td class="field-name">total_cost</td><td class="field-type">float</td><td>Rolled-up material cost.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Response — 200 OK</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"project_id"</span>:   <span class="json-string">"11aabbcc-1122-3344-5566-778899aabbcc"</span>,
+    <span class="json-key">"user_id"</span>:       <span class="json-null">null</span>,
+    <span class="json-key">"name"</span>:          <span class="json-string">"Villa Construction 2026"</span>,
+    <span class="json-key">"description"</span>:  <span class="json-string">"Full estimation for a 4-bedroom villa"</span>,
+    <span class="json-key">"status"</span>:        <span class="json-string">"ACTIVE"</span>,
+    <span class="json-key">"created_at"</span>:    <span class="json-string">"2026-04-13T21:55:00.123Z"</span>,
+    <span class="json-key">"estimation_id"</span>: <span class="json-string">"22bbccdd-2233-4455-6677-8899aabbccdd"</span>,
+    <span class="json-key">"total_cost"</span>:    <span class="json-number">485000</span>
+  }
+}</pre>
+
+        <div class="code-label">Example Response — 404 Not Found</div>
+        <pre>{
+  <span class="json-key">"status"</span>:  <span class="json-string">"error"</span>,
+  <span class="json-key">"message"</span>: <span class="json-string">"Project not found"</span>
+}</pre>
+      </div>
+    </div>
+
+    <!-- Get Estimation -->
+    <div class="endpoint" id="get-estimation">
+      <div class="endpoint-header">
+        <span class="method GET">GET</span>
+        <span class="endpoint-path">/projects/<span class="path-param">:id</span>/estimation</span>
+        <span class="endpoint-summary">Get full estimation for a project</span>
+        <span class="status-badge status-200">200</span>
+        <span class="status-badge status-404">404</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">
+          Returns the complete estimation breakdown for a project: all saved leaf calculations,
+          each with its material lines, sub-totals, and the grand total. This is the "report view".
+        </p>
+
+        <div class="sub-heading">Path Parameters</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The <code>project_id</code> whose estimation to retrieve.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">estimation_id</td><td class="field-type">UUID</td><td>Estimation ID.</td></tr>
+              <tr><td class="field-name">project_id</td><td class="field-type">UUID</td><td>Owning project ID.</td></tr>
+              <tr><td class="field-name">budget_type</td><td class="field-type">enum</td><td><code>FIXED</code> | <code>FLEXIBLE</code></td></tr>
+              <tr><td class="field-name">total_budget</td><td class="field-type">float</td><td>Current running total of all leaf material costs.</td></tr>
+              <tr><td class="field-name">created_at</td><td class="field-type">ISO 8601</td><td>Estimation creation date.</td></tr>
+              <tr><td class="field-name">leaf_calculations</td><td class="field-type">LeafCalc[]</td><td>Array of all saved leaf results (see sub-table).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="sub-heading" style="margin-top:16px">LeafCalc Object</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">project_details_id</td><td class="field-type">UUID</td><td>Row ID — use to update or delete this leaf.</td></tr>
+              <tr><td class="field-name">category_id</td><td class="field-type">UUID</td><td>Leaf category that was estimated.</td></tr>
+              <tr><td class="field-name">category_name</td><td class="field-type">string</td><td>Human-readable category name (English).</td></tr>
+              <tr><td class="field-name">selected_formula_id</td><td class="field-type">UUID</td><td>Formula used.</td></tr>
+              <tr><td class="field-name">formula_name</td><td class="field-type">string</td><td>Formula display name.</td></tr>
+              <tr><td class="field-name">selected_config_id</td><td class="field-type">UUID | null</td><td>Material config used.</td></tr>
+              <tr><td class="field-name">config_name</td><td class="field-type">string | null</td><td>Config display name.</td></tr>
+              <tr><td class="field-name">formula_version_snapshot</td><td class="field-type">integer</td><td>Formula version at save time.</td></tr>
+              <tr><td class="field-name">field_values</td><td class="field-type">object</td><td>Input values used (field_id → number).</td></tr>
+              <tr><td class="field-name">results</td><td class="field-type">object</td><td>Formula output (e.g. <code>{ "volume": 4.0 }</code>).</td></tr>
+              <tr><td class="field-name">created_at</td><td class="field-type">ISO 8601</td><td>When this leaf was saved.</td></tr>
+              <tr><td class="field-name">leaf_total</td><td class="field-type">float</td><td>Sum of all material sub-totals for this leaf.</td></tr>
+              <tr><td class="field-name">material_lines</td><td class="field-type">MaterialLine[]</td><td>Per-material cost detail.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="sub-heading" style="margin-top:16px">MaterialLine Object</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">detail_id</td><td class="field-type">UUID</td><td>Material line row ID.</td></tr>
+              <tr><td class="field-name">material_id</td><td class="field-type">UUID</td><td>Resource catalog material ID.</td></tr>
+              <tr><td class="field-name">material_name</td><td class="field-type">string</td><td>Material display name.</td></tr>
+              <tr><td class="field-name">material_type</td><td class="field-type">enum</td><td><code>PRIMARY</code> | <code>ACCESSORY</code></td></tr>
+              <tr><td class="field-name">unit_symbol</td><td class="field-type">string</td><td>Unit of measurement.</td></tr>
+              <tr><td class="field-name">quantity</td><td class="field-type">float</td><td>Base quantity before waste.</td></tr>
+              <tr><td class="field-name">applied_waste</td><td class="field-type">float</td><td>Applied waste factor (e.g. <code>0.05</code> = 5%).</td></tr>
+              <tr><td class="field-name">quantity_with_waste</td><td class="field-type">float</td><td>Total quantity including waste.</td></tr>
+              <tr><td class="field-name">unit_price_snapshot</td><td class="field-type">float</td><td>Unit price at save time.</td></tr>
+              <tr><td class="field-name">waste_factor_snapshot</td><td class="field-type">float</td><td>Waste factor at save time.</td></tr>
+              <tr><td class="field-name">sub_total</td><td class="field-type">float</td><td>Line total = quantity_with_waste × unit_price_snapshot.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Response — 200 OK</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"estimation_id"</span>:  <span class="json-string">"22bbccdd-2233-4455-6677-8899aabbccdd"</span>,
+    <span class="json-key">"project_id"</span>:     <span class="json-string">"11aabbcc-1122-3344-5566-778899aabbcc"</span>,
+    <span class="json-key">"budget_type"</span>:    <span class="json-string">"FLEXIBLE"</span>,
+    <span class="json-key">"total_budget"</span>:   <span class="json-number">485000</span>,
+    <span class="json-key">"created_at"</span>:     <span class="json-string">"2026-04-13T21:55:00.123Z"</span>,
+    <span class="json-key">"leaf_calculations"</span>: [
+      {
+        <span class="json-key">"project_details_id"</span>:      <span class="json-string">"33ccddee-3344-5566-7788-99aabbccddee"</span>,
+        <span class="json-key">"category_id"</span>:             <span class="json-string">"d4e5f6a7-b8c9-0123-def0-123456789012"</span>,
+        <span class="json-key">"category_name"</span>:           <span class="json-string">"Slab Concrete"</span>,
+        <span class="json-key">"selected_formula_id"</span>:     <span class="json-string">"e5f6a7b8-c9d0-1234-ef01-234567890123"</span>,
+        <span class="json-key">"formula_name"</span>:            <span class="json-string">"Volume Calculation"</span>,
+        <span class="json-key">"selected_config_id"</span>:      <span class="json-string">"c9d0e1f2-a3b4-5678-2345-678901234567"</span>,
+        <span class="json-key">"config_name"</span>:             <span class="json-string">"Standard Mix B25"</span>,
+        <span class="json-key">"formula_version_snapshot"</span>: <span class="json-number">1</span>,
+        <span class="json-key">"field_values"</span>: {
+          <span class="json-key">"f6a7b8c9-d0e1-2345-f012-345678901234"</span>: <span class="json-number">5</span>,
+          <span class="json-key">"a7b8c9d0-e1f2-3456-0123-456789012345"</span>: <span class="json-number">4</span>,
+          <span class="json-key">"b8c9d0e1-f2a3-4567-1234-567890123456"</span>: <span class="json-number">0.2</span>
+        },
+        <span class="json-key">"results"</span>: { <span class="json-key">"volume"</span>: <span class="json-number">4.0</span> },
+        <span class="json-key">"created_at"</span>:  <span class="json-string">"2026-04-13T22:00:00.000Z"</span>,
+        <span class="json-key">"leaf_total"</span>:  <span class="json-number">7560</span>,
+        <span class="json-key">"material_lines"</span>: [
+          {
+            <span class="json-key">"detail_id"</span>:             <span class="json-string">"44ddeeff-4455-6677-8899-aabbccddeeff"</span>,
+            <span class="json-key">"material_id"</span>:           <span class="json-string">"mat-uuid-001"</span>,
+            <span class="json-key">"material_name"</span>:         <span class="json-string">"Portland Cement"</span>,
+            <span class="json-key">"material_type"</span>:         <span class="json-string">"PRIMARY"</span>,
+            <span class="json-key">"unit_symbol"</span>:           <span class="json-string">"bag"</span>,
+            <span class="json-key">"quantity"</span>:              <span class="json-number">1.6</span>,
+            <span class="json-key">"applied_waste"</span>:         <span class="json-number">0.05</span>,
+            <span class="json-key">"quantity_with_waste"</span>:   <span class="json-number">1.68</span>,
+            <span class="json-key">"unit_price_snapshot"</span>:   <span class="json-number">4500</span>,
+            <span class="json-key">"waste_factor_snapshot"</span>: <span class="json-number">0.05</span>,
+            <span class="json-key">"sub_total"</span>:             <span class="json-number">7560</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       ESTIMATION LEAVES
+  ══════════════════════════════════════════════════════ -->
+  <section class="section" id="post-save-leaf">
+    <div class="section-title">🍃 Estimation Leaves</div>
+    <p class="section-subtitle">Save or remove individual leaf calculations within an estimation. Each leaf represents one category's cost breakdown.</p>
+
+    <!-- Save Leaf -->
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method POST">POST</span>
+        <span class="endpoint-path">/estimation/save-leaf</span>
+        <span class="endpoint-summary">Save (or update) a leaf calculation</span>
+        <span class="status-badge status-201">201</span>
+        <span class="status-badge status-400">400</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">
+          Persists a leaf calculation result into the project's estimation. If <code>project_details_id</code>
+          is provided, the existing record is updated (and its material lines are replaced).
+          Otherwise, a new leaf record is created. After saving, the estimation's <code>total_budget</code>
+          is automatically recalculated.
+        </p>
+
+        <div class="note info">
+          <span class="note-icon">ℹ️</span>
+          <span>Always call <code>POST /calculate</code> first to get <code>results</code> and <code>material_lines</code>, then pass that data here to persist it.</span>
+        </div>
+
+        <div class="sub-heading">Request Body</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">project_id</td><td class="field-type">UUID</td><td><span class="required-badge">Required</span></td><td>The project this leaf belongs to.</td></tr>
+              <tr><td class="field-name">category_id</td><td class="field-type">UUID</td><td><span class="required-badge">Required</span></td><td>The leaf category being saved.</td></tr>
+              <tr><td class="field-name">selected_formula_id</td><td class="field-type">UUID</td><td><span class="required-badge">Required</span></td><td>Formula used for the calculation.</td></tr>
+              <tr><td class="field-name">selected_config_id</td><td class="field-type">UUID | null</td><td><span class="optional-badge">Optional</span></td><td>Material config used. Pass <code>null</code> if none selected.</td></tr>
+              <tr><td class="field-name">project_details_id</td><td class="field-type">UUID | null</td><td><span class="optional-badge">Optional</span></td><td>If provided, updates this existing leaf. If <code>null</code>, creates new.</td></tr>
+              <tr><td class="field-name">field_values</td><td class="field-type">Record&lt;UUID, number&gt;</td><td><span class="required-badge">Required</span></td><td>Input values used (field_id → value). May be empty object for computed-only formulas.</td></tr>
+              <tr><td class="field-name">formula_version_snapshot</td><td class="field-type">integer</td><td><span class="required-badge">Required</span></td><td>Formula <code>version</code> from the leaf endpoint — for audit trail.</td></tr>
+              <tr><td class="field-name">results</td><td class="field-type">object</td><td><span class="required-badge">Required</span></td><td>Computed outputs from <code>/calculate</code> (e.g. <code>{ "volume": 4.0 }</code>).</td></tr>
+              <tr><td class="field-name">material_lines</td><td class="field-type">MaterialLine[]</td><td><span class="required-badge">Required</span></td><td>Material cost lines returned by <code>/calculate</code> (see schema below).</td></tr>
+              <tr><td class="field-name">leaf_total</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Sum of all <code>sub_total</code> values in material_lines.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="sub-heading" style="margin-top:16px">MaterialLine Schema (inside <code>material_lines</code> array)</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">material_id</td><td class="field-type">UUID</td><td><span class="required-badge">Required</span></td><td>Resource catalog material ID.</td></tr>
+              <tr><td class="field-name">material_name</td><td class="field-type">string</td><td><span class="required-badge">Required</span></td><td>Material display name.</td></tr>
+              <tr><td class="field-name">material_type</td><td class="field-type">enum</td><td><span class="required-badge">Required</span></td><td><code>PRIMARY</code> | <code>ACCESSORY</code></td></tr>
+              <tr><td class="field-name">quantity</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Base quantity.</td></tr>
+              <tr><td class="field-name">applied_waste</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Waste factor applied.</td></tr>
+              <tr><td class="field-name">quantity_with_waste</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Total quantity with waste.</td></tr>
+              <tr><td class="field-name">unit_price_snapshot</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Price per unit at calculation time.</td></tr>
+              <tr><td class="field-name">waste_factor_snapshot</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Waste factor at calculation time.</td></tr>
+              <tr><td class="field-name">sub_total</td><td class="field-type">number ≥ 0</td><td><span class="required-badge">Required</span></td><td>Line total cost.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 201 Created</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">estimation_id</td><td class="field-type">UUID</td><td>The estimation that was updated.</td></tr>
+              <tr><td class="field-name">project_details_id</td><td class="field-type">UUID</td><td>The newly created or updated leaf row ID.</td></tr>
+              <tr><td class="field-name">total_budget</td><td class="field-type">float</td><td>Updated estimation total after saving this leaf.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Request Body</div>
+        <pre>{
+  <span class="json-key">"project_id"</span>:               <span class="json-string">"11aabbcc-1122-3344-5566-778899aabbcc"</span>,
+  <span class="json-key">"category_id"</span>:              <span class="json-string">"d4e5f6a7-b8c9-0123-def0-123456789012"</span>,
+  <span class="json-key">"selected_formula_id"</span>:      <span class="json-string">"e5f6a7b8-c9d0-1234-ef01-234567890123"</span>,
+  <span class="json-key">"selected_config_id"</span>:       <span class="json-string">"c9d0e1f2-a3b4-5678-2345-678901234567"</span>,
+  <span class="json-key">"project_details_id"</span>:       <span class="json-null">null</span>,
+  <span class="json-key">"field_values"</span>: {
+    <span class="json-key">"f6a7b8c9-d0e1-2345-f012-345678901234"</span>: <span class="json-number">5</span>,
+    <span class="json-key">"a7b8c9d0-e1f2-3456-0123-456789012345"</span>: <span class="json-number">4</span>,
+    <span class="json-key">"b8c9d0e1-f2a3-4567-1234-567890123456"</span>: <span class="json-number">0.2</span>
+  },
+  <span class="json-key">"formula_version_snapshot"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"results"</span>: { <span class="json-key">"volume"</span>: <span class="json-number">4.0</span> },
+  <span class="json-key">"material_lines"</span>: [
+    {
+      <span class="json-key">"material_id"</span>:           <span class="json-string">"mat-uuid-001"</span>,
+      <span class="json-key">"material_name"</span>:         <span class="json-string">"Portland Cement"</span>,
+      <span class="json-key">"material_type"</span>:         <span class="json-string">"PRIMARY"</span>,
+      <span class="json-key">"quantity"</span>:              <span class="json-number">1.6</span>,
+      <span class="json-key">"applied_waste"</span>:         <span class="json-number">0.05</span>,
+      <span class="json-key">"quantity_with_waste"</span>:   <span class="json-number">1.68</span>,
+      <span class="json-key">"unit_price_snapshot"</span>:   <span class="json-number">4500</span>,
+      <span class="json-key">"waste_factor_snapshot"</span>: <span class="json-number">0.05</span>,
+      <span class="json-key">"sub_total"</span>:             <span class="json-number">7560</span>
+    }
+  ],
+  <span class="json-key">"leaf_total"</span>: <span class="json-number">7560</span>
+}</pre>
+
+        <div class="code-label">Example Response — 201 Created</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"estimation_id"</span>:      <span class="json-string">"22bbccdd-2233-4455-6677-8899aabbccdd"</span>,
+    <span class="json-key">"project_details_id"</span>: <span class="json-string">"33ccddee-3344-5566-7788-99aabbccddee"</span>,
+    <span class="json-key">"total_budget"</span>:       <span class="json-number">7560</span>
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Remove Leaf -->
+    <div class="endpoint" id="delete-leaf">
+      <div class="endpoint-header">
+        <span class="method DELETE">DELETE</span>
+        <span class="endpoint-path">/estimation/leaf</span>
+        <span class="endpoint-summary">Remove a leaf calculation</span>
+        <span class="status-badge status-200">200</span>
+        <span class="status-badge status-400">400</span>
+        <span class="status-badge status-404">404</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="ep-desc">
+          Permanently removes a single leaf calculation (including all its material lines)
+          from the estimation and recalculates the estimation's <code>total_budget</code>.
+        </p>
+
+        <div class="sub-heading">Request Body</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">project_details_id</td>
+                <td class="field-type">UUID</td>
+                <td><span class="required-badge">Required</span></td>
+                <td>The leaf row ID to delete (from <code>leaf_calculations[].project_details_id</code>).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-heading">Response — 200 OK</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="field-name">estimation_id</td><td class="field-type">UUID</td><td>The estimation that was updated.</td></tr>
+              <tr><td class="field-name">total_budget</td><td class="field-type">float</td><td>Updated estimation total after the leaf was removed.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-label">Example Request Body</div>
+        <pre>{
+  <span class="json-key">"project_details_id"</span>: <span class="json-string">"33ccddee-3344-5566-7788-99aabbccddee"</span>
+}</pre>
+
+        <div class="code-label">Example Response — 200 OK</div>
+        <pre>{
+  <span class="json-key">"status"</span>: <span class="json-string">"ok"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"estimation_id"</span>: <span class="json-string">"22bbccdd-2233-4455-6677-8899aabbccdd"</span>,
+    <span class="json-key">"total_budget"</span>:  <span class="json-number">0</span>
+  }
+}</pre>
+
+        <div class="note danger">
+          <span class="note-icon">🚨</span>
+          <span>This action is <strong>irreversible</strong>. All material lines for the deleted leaf are permanently removed from the database.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────── -->
+  <hr class="divider" />
+  <p style="font-size:12px;color:var(--text-dim);text-align:center;">
+    Estimation API Contract · Backend PFE · Generated April 2026 · Base URL: <code style="color:var(--accent)">http://localhost:5000/api/estimation</code>
+  </p>
+
+</main>
+</body>
+</html>
