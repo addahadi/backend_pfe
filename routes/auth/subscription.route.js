@@ -1,43 +1,43 @@
-// استيراد express
 import express from 'express';
-
-// استيراد controller
-import { create, getMine , getAll } from '../../controllers/auth/subscription.controller.js';
-
-// middleware التحقق من التوكن
+import { create, getMine, getMyUsage, getAll } from '../../controllers/auth/subscription.controller.js';
 import verifyToken from '../../middelwares/verfytToken.js';
-
-// middleware validation
-import { validate } from '../../middelwares/validate.js';
-
-// schema
+import { validate }  from '../../middelwares/validate.js';
 import { createSubscriptionSchema } from '../../schemas/subscription.schema.js';
 
 const router = express.Router();
 
 /*
 POST /subscriptions
-
-هذا route يسمح للمستخدم بإنشاء اشتراك
-
-Flow:
-1. verifyToken → التحقق من المستخدم
-2. validate → التحقق من البيان
-3. controller → تنفيذ المنطق
+User subscribes to a plan (after register → choose-plan flow)
 */
 router.post('/subscriptions', verifyToken, validate(createSubscriptionSchema), create);
 
 /*
 GET /subscriptions/me
-
-هذا route:
-- يرجع الاشتراك الحالي للمستخدم
+Returns formatted subscription info for the dashboard
 */
-
 router.get('/subscriptions/me', verifyToken, getMine);
-// -----------------------------
-// جلب كل الاشتراكات (admin فقط)
-// -----------------------------
+
+/*
+GET /subscriptions/me/usage
+Returns usage vs limits for projects / ai / estimations.
+Called by the frontend useUsage() hook (every 30s staleTime).
+Response shape:
+{
+  subscription_id,
+  plan_ends_at,
+  usage: {
+    projects:    { used, limit, unlimited, percentage },
+    ai:          { used, limit, unlimited, percentage },
+    estimations: { used, limit, unlimited, percentage },
+  }
+}
+*/
+router.get('/subscriptions/me/usage', verifyToken, getMyUsage);
+
+/*
+GET /subscriptions (admin)
+*/
 router.get('/subscriptions', getAll);
 
 export default router;

@@ -1,73 +1,64 @@
-/*
-Subscription Controller
-
-الـ Controller:
-- يستقبل request من المستخدم
-- يرسلها إلى service
-- يرجع response
-*/
 import * as subscriptionService from '../../services/auth/subscription.service.js';
+import { ok, handleError, notFound } from '../../utils/http.js';
+
 /*
-Create Subscription Controller
+POST /subscriptions
+Create a new subscription for the authenticated user
 */
 export const create = async (req, res, next) => {
   try {
-    // Debug (اختياري)
-    console.log('user:', req.user);
-    console.log('planId:', req.body.planId);
-
     const result = await subscriptionService.createSubscription({
       userId: req.user.userId,
       planId: req.body.planId,
     });
-
-    res.status(201).json(result);
+    ok(res, result, 201);
   } catch (error) {
     next(error);
   }
 };
 
 /*
-Get My Subscription Controller
+GET /subscriptions/me
+Returns the current active subscription (formatted for client)
 */
-
 export const getMine = async (req, res, next) => {
   try {
-    // userId من التوكن
-    const subscription = await subscriptionService.getMySubscription(req.user.userId);
+    const subscription = await subscriptionService.getMySubscriptionForClient(req.user.userId);
 
-    // إذا ما عندوش subscription
-    if (!subscription) {
-      return res.status(404).json({
-        message: 'No active subscription',
-      });
-    }
+    if (!subscription) return notFound(res, 'No active subscription');
 
-    // إرسال النتيجة
-    res.json(subscription);
+    ok(res, subscription);
   } catch (error) {
     next(error);
   }
 };
 
+/*
+GET /subscriptions/me/usage
+Returns usage vs limits for all 3 feature keys.
+Frontend uses this to render progress bars and gate action buttons.
+*/
+export const getMyUsage = async (req, res, next) => {
+  try {
+    const usage = await subscriptionService.getMyUsageWithLimits(req.user.userId);
+
+    if (!usage) return notFound(res, 'No active subscription');
+
+    ok(res, usage);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/*
+GET /subscriptions (admin)
+Returns all subscriptions with user and plan info
+*/
 export const getAll = async (req, res, next) => {
   try {
-    // -----------------------------
-    // 1️⃣ استدعاء service
-    // -----------------------------
     const result = await subscriptionService.getAllSubscriptions();
-
-    // -----------------------------
-    // 2️⃣ إرسال النتيجة
-    // -----------------------------
-    res.json({
-      success: true,
-      data: result,
-    });
+    ok(res, result);
   } catch (error) {
-    // -----------------------------
-    // 3️⃣ تمرير الخطأ
-    // -----------------------------
     next(error);
   }
 };

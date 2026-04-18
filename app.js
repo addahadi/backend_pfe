@@ -52,6 +52,5 @@ app.use(errorHandler);
 app.use((req, res) => {
     res.status(404).json({ success: false, message: "الرابط المطلوب غير موجود" });
 });
-app.listen(5000, () => console.log('Server started on port 5000'));
 
 export default app;

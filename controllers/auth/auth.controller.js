@@ -9,16 +9,17 @@ Handles HTTP request.
 //controller
 
 import * as authService from '../../services/auth/auth.service.js';
+import { ok, handleError } from '../../utils/http.js';
 
-export const register = async (req, res, next) => {
+export const register = async (req, res) => {
   try {
     // call service logic
     const result = await authService.register(req.body);
 
     // send response
-    res.status(201).json(result);
+    ok(res, result, 201);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 
@@ -28,7 +29,7 @@ route و service
 
 هو يستقبل الطلب ويرسل الرد
 */
-export const login = async (req, res, next) => {
+export const login = async (req, res) => {
   try {
     // ✅ نخرج البيانات من req.body
     const { email, password } = req.body;
@@ -36,48 +37,48 @@ export const login = async (req, res, next) => {
     // إرسال البيانات إلى service
     const result = await authService.login({ email, password });
     // إرسال البيانات إلى service
-    res.status(200).json(result);
+    ok(res, result);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 
-export const refresh = async (req, res, next) => {
+export const refresh = async (req, res) => {
   try {
     console.log(req.body);
     const result = await authService.refresh(req.body.refreshToken);
 
-    res.status(200).json(result);
+    ok(res, result);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 
 export const verify = (req, res) => {
-  res.status(200).json({
+  ok(res, {
     message: 'Token valid',
     user: req.user,
   });
 };
 
-export const getMe = async (req, res, next) => {
+export const getMe = async (req, res) => {
   try {
     const rows = await authService.getMe(req.user.userId);
-    res.status(200).json(rows);
+    ok(res, rows);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 //logout
-export const logout = async (req, res, next) => {
+export const logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
     const result = await authService.logout(refreshToken);
 
-    res.status(200).json(result);
+    ok(res, result);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 
@@ -85,38 +86,38 @@ export const logout = async (req, res, next) => {
 /*
 يستقبل الإيميل ويرسل رابط إعادة التعيين
 */
-export const forgotPassword = async (req, res, next) => {
+export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const result = await authService.forgotPassword({ email });
-    res.status(200).json(result);
+    ok(res, result);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 
 /*
 يتحقق من صلاحية التوكن
 */
-export const verifyResetToken = async (req, res, next) => {
+export const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.query;
     const result = await authService.verifyResetToken({ token });
-    res.status(200).json(result);
+    ok(res, result);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };
 
 /*
 يستقبل التوكن وكلمة السر الجديدة ويحدثها
 */
-export const resetPassword = async (req, res, next) => {
+export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     const result = await authService.resetPassword({ token, newPassword });
-    res.status(200).json(result);
+    ok(res, result);
   } catch (error) {
-    next(error);
+    handleError(res, error);
   }
 };

@@ -4,7 +4,10 @@ export default function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).json({ message: 'Token required' });
+    return res.status(401).json({
+      success: false,
+      error: { code: 'AUTH_ERROR', message: 'Token required' },
+    });
   }
 
   const token = authHeader.split(' ')[1];
@@ -16,6 +19,9 @@ export default function verifyToken(req, res, next) {
 
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
+    return res.status(401).json({
+      success: false,
+      error: { code: 'AUTH_ERROR', message: 'Invalid token' },
+    });
   }
 }
