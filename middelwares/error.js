@@ -1,13 +1,8 @@
-function errorHandler(err, req, res, next) {
-  console.error('[Server Error]', err);
+import { handleError } from '../utils/http.js';
 
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'An unexpected error occurred.';
-
-  res.status(statusCode).json({
-    success: false,
-    error: message,
-  });
+// Express 4-arg error handler — must keep the `next` param even if unused
+function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-vars
+  handleError(res, err);
 }
 
 export default errorHandler;
