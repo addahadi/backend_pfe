@@ -1,5 +1,6 @@
 // استيراد الاتصال بقاعدة البيانات
 import sql from '../config/database.js';
+import jwt from 'jsonwebtoken';
 /*
 Create Subscription Service
 
@@ -153,4 +154,175 @@ export const getPlanFeatures = async (planId) => {
   `;
 
   return features;
+};
+
+// ──────────────────────────────────────────────────────────────
+// Get Active Subscription with Plan Details
+// ──────────────────────────────────────────────────────────────
+export const getActiveSubscription = async (userId) => {
+  const result = await sql`
+    SELECT 
+      s.*,
+      p.plan_id,
+      p.name_en,
+      p.name_ar,
+      p.price,
+      p.duration
+    FROM subscriptions s
+    JOIN plans p ON s.plan_id = p.plan_id
+    WHERE s.user_id = ${userId}
+      AND s.status = 'ACTIVE'
+    LIMIT 1
+  `;
+
+  if (!result.length) {
+    throw new Error('No active subscription found');
+  }
+
+  return {
+    subscription_id: result[0].subscription_id,
+    plan_id: result[0].plan_id,
+    plans: {
+      name_en: result[0].name_en,
+      name_ar: result[0].name_ar,
+      price: result[0].price,
+    },
+    start_date: result[0].start_date,
+    end_date: result[0].end_date,
+  };
+};
+
+// ──────────────────────────────────────────────────────────────
+// Get Plan with Features
+// ──────────────────────────────────────────────────────────────
+export const getPlanWithFeatures = async (planId) => {
+  const plan = await sql`
+    SELECT * FROM plans
+    WHERE plan_id = ${planId}
+  `;
+
+  if (!plan.length) {
+    throw new Error('Plan not found');
+  }
+
+  const features = await sql`
+    SELECT feature_key, feature_value_en
+    FROM features
+    WHERE plan_id = ${planId}
+  `;
+
+  const featuresSnapshot = {};
+  for (const f of features) {
+    featuresSnapshot[f.feature_key] = f.feature_value_en;
+  }
+
+  return {
+    plan_id: plan[0].plan_id,
+    name_en: plan[0].name_en,
+    name_ar: plan[0].name_ar,
+    price: plan[0].price,
+    duration: plan[0].duration,
+    plan_types: plan[0].plan_type_id,
+    features: featuresSnapshot,
+  };
+};
+
+// ──────────────────────────────────────────────────────────────
+// Compare Two Plans
+// ──────────────────────────────────────────────────────────────
+export const isSamePlan = (planId1, planId2) => {
+  return planId1 === planId2;
+};
+
+// ──────────────────────────────────────────────────────────────
+// Generate Switch Token (JWT - 15 minutes expiry)
+// ──────────────────────────────────────────────────────────────
+export const generateSwitchToken = (userId, subscriptionId, newPlanId) => {
+  const payload = {
+    userId,
+    subscriptionId,
+    newPlanId,
+  };
+
+  return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', {
+    expiresIn: '15m',
+  });
+};
+
+// ──────────────────────────────────────────────────────────────
+// Validate Switch Token
+// ──────────────────────────────────────────────────────────────
+export const validateSwitchToken = (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    return {
+      userId: decoded.userId,
+      subscriptionId: decoded.subscriptionId,
+      newPlanId: decoded.newPlanId,
+    };
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      throw new Error('رمز التأكيد منتهي الصلاحية');
+    }
+    throw new Error('رمز التأكيد غير صالح');
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Execute Plan Switch Transaction
+// ──────────────────────────────────────────────────────────────
+export const executePlanSwitch = async (userId, subscriptionId, newPlan) => {
+  return await sql.begin(async (tx) => {
+    // 1️⃣ نهاية الاشتراك القديم
+    await tx`
+      UPDATE subscriptions
+      SET status = 'INACTIVE'
+      WHERE subscription_id = ${subscriptionId}
+        AND user_id = ${userId}
+    `;
+
+    // 2️⃣ حساب تاريخ النهاية
+    const start_date = new Date();
+    const end_date = new Date();
+    end_date.setDate(start_date.getDate() + newPlan.duration);
+
+    // 3️⃣ إنشاء الاشتراك الجديد
+    const result = await tx`
+      INSERT INTO subscriptions (
+        user_id,
+        plan_id,
+        start_date,
+        end_date,
+        status,
+        features_snapshot
+      )
+      VALUES (
+        ${userId},
+        ${newPlan.plan_id},
+        ${start_date},
+        ${end_date},
+        'ACTIVE',
+        ${JSON.stringify(newPlan.features)}
+      )
+      RETURNING *
+    `;
+
+    // 4️⃣ تسجيل في ai_usage_history (إعادة تعيين الاستخدام)
+    await tx`
+      INSERT INTO ai_usage_history (
+        subscription_id,
+        usage_limit,
+        usage_count,
+        reset_at
+      )
+      VALUES (
+        ${result[0].subscription_id},
+        0,
+        0,
+        ${start_date}
+      )
+    `;
+
+    return result[0];
+  });
 };

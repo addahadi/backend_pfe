@@ -9,6 +9,7 @@ import errorHandler from './middelwares/error.js';
 import authRoutes from './routes/auth.route.js';
 import planRoutes from './routes/plans.route.js';
 import subscriptionRoutes from './routes/subscription.route.js';
+import switchRoutes from './routes/switch.js';
 
 const app = express();
 
@@ -22,6 +23,8 @@ app.use('/api', authRoutes);
 app.use('/api', planRoutes);
 //
 app.use('/api', subscriptionRoutes);
+//
+app.use('/api/subscriptions', switchRoutes);
 
 app.use(errorHandler);
 
