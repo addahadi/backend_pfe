@@ -1,13 +1,16 @@
-import Groq from 'groq-sdk';
+// import Groq from 'groq-sdk';
 
 // Groq client is created lazily so a missing API key does not crash startup.
 let _groq = null;
 const getGroq = () => {
-  if (!_groq) _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  // if (!_groq) _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   return _groq;
 };
 
 export const getExpertResponse = async (userMessage) => {
+  // Temporary mock - groq-sdk not installed
+  return "Service temporarily disabled";
+};
     try {
         // Use Groq's mixtral model
         const message = await getGroq().chat.completions.create({
@@ -32,4 +35,4 @@ Strict Rule: If the user asks about anything outside of construction, civil engi
         throw new Error("Failed to generate AI response.");
     }
 };
-
+

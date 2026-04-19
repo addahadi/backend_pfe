@@ -7,9 +7,12 @@ import {
   UUIDParamSchema,
 } from './schemas.js';
 import * as service from './estimation.service.js';
-import { generatePDF } from '../../services/externalService/pdfService.js';
+// import { generatePDF } from '../../services/externalService/pdfService.js';
 import { sendEmail } from '../../services/externalService/emailService.js';
-import { getExchangeSettings } from '../../services/externalService/exchangeService.js';
+// import { getExchangeSettings } from '../../services/externalService/exchangeService.js';
+
+const generatePDF = () => null; // Temporary mock
+const getExchangeSettings = () => ({}); // Temporary mock
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 

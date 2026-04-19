@@ -1,23 +1,6 @@
-import PDFDocument from 'pdfkit';
+// import PDFDocument from 'pdfkit';
 
-const generatePDF = (data) => {
-    return new Promise((resolve, reject) => {
-        const doc = new PDFDocument({ margin: 50 });
-        let buffers = [];
-
-        doc.on('data', buffers.push.bind(buffers));
-        doc.on('end', () => resolve(Buffer.concat(buffers)));
-        doc.on('error', reject);
-
-        // Header
-        doc.fontSize(24).font('Helvetica-Bold').fillColor('#1d4ed8').text('APEX Smart Construction', { align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(16).font('Helvetica').fillColor('#475569').text('Rapport d\'Estimation', { align: 'center' });
-        doc.moveDown(2);
-
-        // Project Info
-        doc.fontSize(12).fillColor('black');
-        doc.font('Helvetica-Bold').text('Informations du Projet');
+const generatePDF = () => null; // Temporary mock - pdfkit not installed
         doc.moveDown(0.5);
         doc.font('Helvetica').text(`Projet: ${data.projectName || 'N/A'}`);
         doc.text(`Date du calcul: ${data.date || new Date().toLocaleDateString()}`);

@@ -273,7 +273,13 @@ export const validateSwitchToken = (token) => {
 // ──────────────────────────────────────────────────────────────
 export const executePlanSwitch = async (userId, subscriptionId, newPlan) => {
   return await sql.begin(async (tx) => {
-    // 1️⃣ نهاية الاشتراك القديم
+    // 1️⃣ حذف سجل الاستخدام للاشتراك القديم
+    await tx`
+      DELETE FROM ai_usage_history
+      WHERE subscription_id = ${subscriptionId}
+    `;
+
+    // 2️⃣ نهاية الاشتراك القديم
     await tx`
       UPDATE subscriptions
       SET status = 'INACTIVE'
@@ -281,12 +287,12 @@ export const executePlanSwitch = async (userId, subscriptionId, newPlan) => {
         AND user_id = ${userId}
     `;
 
-    // 2️⃣ حساب تاريخ النهاية
+    // 3️⃣ حساب تاريخ النهاية
     const start_date = new Date();
     const end_date = new Date();
     end_date.setDate(start_date.getDate() + newPlan.duration);
 
-    // 3️⃣ إنشاء الاشتراك الجديد
+    // 4️⃣ إنشاء الاشتراك الجديد
     const result = await tx`
       INSERT INTO subscriptions (
         user_id,
@@ -307,7 +313,7 @@ export const executePlanSwitch = async (userId, subscriptionId, newPlan) => {
       RETURNING *
     `;
 
-    // 4️⃣ تسجيل في ai_usage_history (إعادة تعيين الاستخدام)
+    // 5️⃣ إنشاء سجل استخدام جديد من الصفر
     await tx`
       INSERT INTO ai_usage_history (
         subscription_id,
