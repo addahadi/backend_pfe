@@ -9,7 +9,7 @@ export const CalculationInputSchema = z.object({
   selected_formula_id:  UUID,
   selected_config_id:   UUID.nullable().default(null),
   field_values: z
-    .record(z.string().min(1), z.number().finite())
+    .record(z.string().min(1), z.number())
     .refine(v => Object.keys(v).length > 0, {
       message: 'field_values must not be empty',
     }),
@@ -20,7 +20,7 @@ export const CalculationInputSchema = z.object({
 export const CreateProjectSchema = z.object({
   name:         z.string().min(1).max(200),
   description:  z.string().max(1000).optional(),
-  budget_type:  z.enum(['FIXED', 'FLEXIBLE']).default('FLEXIBLE'),
+  budget_type:  z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
   total_budget: z.number().positive().optional(),
 });
 

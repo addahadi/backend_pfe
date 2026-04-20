@@ -1,12 +1,6 @@
-
-import sql from '../../config/database.js'
+import sql from '../../config/database.js';
 import { CalculationEngine } from '../engine/engine.js';
-import { PostgresEngineRepository } from './repository.js'; // Or wait, let me just replace `./repository.js` if it exists.
-
-// wait, the original `estimation.service.ts` had:
-// import sql from './db';
-// import { PostgresEngineRepository } from './repository';
-// Let me write the code as close as possible to the original.
+import { PostgresEngineRepository } from './repository.js';
 
 const repo = new PostgresEngineRepository();
 const engine = new CalculationEngine(repo);
@@ -27,13 +21,14 @@ export async function getProjects(user_id) {
       p.description,
       p.status,
       p.created_at,
+      p.image_url,
       e.estimation_id,
-      COALESCE(e.total_budget, 0)::float   AS total_cost,
-      COUNT(pd.id)::int                    AS leaf_count
+      COALESCE(e.total_budget, 0)::float AS total_cost,
+      COUNT(pd.id)::int                  AS leaf_count
     FROM projects p
-    LEFT JOIN estimation e  ON e.project_id  = p.project_id
+    LEFT JOIN estimation e       ON e.project_id   = p.project_id
     LEFT JOIN project_details pd ON pd.estimation_id = e.estimation_id
-    WHERE p.user_id IS NOT DISTINCT FROM ${user_id ?? null}::uuid
+    WHERE p.user_id = ${user_id}::uuid
     GROUP BY p.project_id, e.estimation_id, e.total_budget
     ORDER BY p.created_at DESC
   `;
@@ -48,12 +43,13 @@ export async function getProjectById(project_id, user_id) {
       p.description,
       p.status,
       p.created_at,
+      p.image_url,
       e.estimation_id,
       COALESCE(e.total_budget, 0)::float AS total_cost
     FROM projects p
     LEFT JOIN estimation e ON e.project_id = p.project_id
     WHERE p.project_id = ${project_id}
-      AND p.user_id    IS NOT DISTINCT FROM ${user_id ?? null}::uuid
+      AND p.user_id = ${user_id}::uuid
   `;
   return rows[0] ?? null;
 }
@@ -61,9 +57,9 @@ export async function getProjectById(project_id, user_id) {
 export async function createProject(user_id, dto) {
   return sql.begin(async (tx) => {
     const [project] = await tx`
-      INSERT INTO projects (user_id, name, description, status)
-      VALUES (${user_id ?? null}, ${dto.name}, ${dto.description ?? null}, 'ACTIVE')
-      RETURNING project_id, name, description, status, created_at
+      INSERT INTO projects (user_id, name, description, status, image_url)
+      VALUES (${user_id ?? null}, ${dto.name}, ${dto.description ?? null}, 'ACTIVE', ${dto.image_url ?? null})
+      RETURNING project_id, name, description, status, created_at, image_url
     `;
 
     const [estimation] = await tx`
@@ -96,10 +92,39 @@ export async function getChildCategories(parent_id) {
   `;
 }
 
+export async function getCategoryTree() {
+  const categories = await sql`
+    SELECT category_id, parent_id, category_level, name_en, name_ar, icon, sort_order
+    FROM categories
+    WHERE is_active = true
+    ORDER BY sort_order, name_en
+  `;
+
+  // Build tree
+  const map = {};
+  const roots = [];
+
+  for (const cat of categories) {
+    map[cat.category_id] = { ...cat, children: [] };
+  }
+
+  for (const cat of categories) {
+    if (cat.parent_id) {
+      if (map[cat.parent_id]) {
+        map[cat.parent_id].children.push(map[cat.category_id]);
+      }
+    } else {
+      roots.push(map[cat.category_id]);
+    }
+  }
+
+  return roots;
+}
+
 export async function getCategoryWithFormulas(category_id) {
   const [category, formulas, configs] = await Promise.all([
     sql`
-      SELECT category_id, parent_id, category_level, name_en, name_ar, icon
+      SELECT category_id, parent_id, category_level, name_en, name_ar, description_en, description_ar, icon
       FROM   categories
       WHERE  category_id = ${category_id} AND is_active = true
     `,
@@ -113,21 +138,23 @@ export async function getCategoryWithFormulas(category_id) {
         COALESCE(
           json_agg(
             json_build_object(
-              'field_id',      fd.field_id,
-              'label',         fd.label_en,
-              'required',      fd.required,
-              'default_value', fd.default_value,
-              'sort_order',    fd.sort_order,
-              'unit_symbol',   fu.symbol,
-              'is_computed',   (fd.source_formula_id IS NOT NULL)
+              'field_id',       fd.field_id,
+              'label',          fd.label_en,
+              'label_ar',       fd.label_ar,
+              'variable_name',  fd.variable_name,
+              'required',       fd.required,
+              'default_value',  fd.default_value,
+              'sort_order',     fd.sort_order,
+              'unit_symbol',    fu.symbol,
+              'is_computed',    (fd.source_formula_id IS NOT NULL)
             ) ORDER BY fd.sort_order
           ) FILTER (WHERE fd.field_id IS NOT NULL),
           '[]'
         ) AS fields
       FROM formulas f
       JOIN units u ON u.unit_id = f.output_unit
-      LEFT JOIN field_definitions fd ON fd.formula_id  = f.formula_id
-      LEFT JOIN units fu             ON fu.unit_id      = fd.unit_id
+      LEFT JOIN field_definitions fd ON fd.formula_id = f.formula_id
+      LEFT JOIN units fu             ON fu.unit_id     = fd.unit_id
       WHERE f.category_id  = ${category_id}
         AND f.formula_type = 'NON_MATERIAL'
       GROUP BY f.formula_id, u.symbol
@@ -138,7 +165,7 @@ export async function getCategoryWithFormulas(category_id) {
       FROM   material_config
       WHERE  category_id = ${category_id}
       ORDER  BY name
-    `
+    `,
   ]);
 
   if (!category[0]) return null;
@@ -170,9 +197,9 @@ export async function getEstimationByProject(project_id) {
       pd.created_at,
       COALESCE(SUM(edm.sub_total), 0)::float AS leaf_total
     FROM project_details pd
-    JOIN categories c          ON c.category_id  = pd.category_id
-    JOIN formulas f            ON f.formula_id   = pd.selected_formula_id
-    LEFT JOIN material_config mc ON mc.config_id = pd.selected_config_id
+    JOIN categories c            ON c.category_id  = pd.category_id
+    JOIN formulas f              ON f.formula_id   = pd.selected_formula_id
+    LEFT JOIN material_config mc ON mc.config_id   = pd.selected_config_id
     LEFT JOIN estimation_detail_material edm
            ON edm.project_details_id = pd.id
     WHERE pd.estimation_id = ${estimation.estimation_id}
@@ -189,7 +216,7 @@ export async function getEstimationByProject(project_id) {
           edm.material_id,
           rc.material_name_en AS material_name,
           rc.material_type,
-          u.symbol   AS unit_symbol,
+          u.symbol            AS unit_symbol,
           edm.quantity,
           edm.applied_waste,
           edm.quantity_with_waste,
@@ -235,14 +262,15 @@ export async function saveLeafResult(dto) {
     let projectDetailsId;
 
     if (dto.project_details_id) {
+      // Recalculation — update existing leaf
       const [updated] = await tx`
         UPDATE project_details
         SET
           selected_formula_id      = ${dto.selected_formula_id},
           selected_config_id       = ${dto.selected_config_id},
           formula_version_snapshot = ${dto.formula_version_snapshot},
-          values                   = ${JSON.stringify(dto.field_values)},
-          results                  = ${JSON.stringify(dto.results)},
+          values                   = ${dto.field_values},
+          results                  = ${dto.results},
           updated_at               = NOW()
         WHERE id            = ${dto.project_details_id}
           AND estimation_id = ${estimationId}
@@ -256,6 +284,7 @@ export async function saveLeafResult(dto) {
         WHERE project_details_id = ${projectDetailsId}
       `;
     } else {
+      // First save — insert new leaf
       const [inserted] = await tx`
         INSERT INTO project_details (
           project_id,
@@ -275,8 +304,8 @@ export async function saveLeafResult(dto) {
           ${dto.selected_formula_id},
           ${dto.selected_config_id},
           ${dto.formula_version_snapshot},
-          ${JSON.stringify(dto.field_values)},
-          ${JSON.stringify(dto.results)}
+          ${dto.field_values},
+          ${dto.results}
         )
         RETURNING id
       `;
@@ -301,12 +330,13 @@ export async function saveLeafResult(dto) {
       `;
     }
 
+    // Recompute total from ALL leaves in this estimation
     await tx`
       UPDATE estimation
       SET total_budget = (
-        SELECT COALESCE(SUM(edm.sub_total), 0)
-        FROM   estimation_detail_material edm
-        WHERE  edm.estimation_id = ${estimationId}
+        SELECT COALESCE(SUM(sub_total), 0)
+        FROM   estimation_detail_material
+        WHERE  estimation_id = ${estimationId}
       )
       WHERE estimation_id = ${estimationId}
     `;
@@ -325,7 +355,7 @@ export async function saveLeafResult(dto) {
   });
 }
 
-// ─── Remove a leaf from an estimation ────────────────────────────────────────
+// ─── Remove a leaf ────────────────────────────────────────────────────────────
 
 export async function removeLeaf(project_details_id) {
   return sql.begin(async (tx) => {
@@ -369,26 +399,26 @@ export async function removeLeaf(project_details_id) {
   });
 }
 
+// ─── Export helpers ───────────────────────────────────────────────────────────
+
 export async function getExportData(project_id, user_id) {
   const project = await getProjectById(project_id, user_id);
 
-  // L'Estimation la plus récente (depuis estimations)
   const [estimation] = await sql`
-      SELECT * FROM estimation
-      WHERE project_id = ${project_id}
-      ORDER BY created_at DESC
-      LIMIT 1
-    `;
+    SELECT * FROM estimation
+    WHERE project_id = ${project_id}
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
 
-  // Les Détails (depuis project_details)
   let details = [];
   if (estimation) {
     details = await sql`
-        SELECT pd.*, c.name_en as category_name
-        FROM project_details pd
-        LEFT JOIN categories c ON c.category_id = pd.category_id
-        WHERE pd.estimation_id = ${estimation.estimation_id}
-      `;
+      SELECT pd.*, c.name_en AS category_name
+      FROM project_details pd
+      LEFT JOIN categories c ON c.category_id = pd.category_id
+      WHERE pd.estimation_id = ${estimation.estimation_id}
+    `;
   }
 
   return { project, estimation, details };

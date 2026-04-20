@@ -1,8 +1,7 @@
 import express from 'express';
 
-import verifyToken from '../../middelwares/verfytToken.js';
-
-// middleware validation
+import authenticate from '../../middelwares/authenticate.js';
+import { requireRole } from '../../middelwares/reaquireRole.js';
 import { validate } from '../../middelwares/validate.js';
 
 import { createPlanSchema, updatePlanSchema } from '../../schemas/plan.schema.js';
@@ -10,14 +9,12 @@ import { createPlan, updatePlan, getFeatures, getPlans } from '../../controllers
 
 const router = express.Router();
 
-router.post('/plans', validate(createPlanSchema), createPlan);
-
+// Public — anyone can read available plans
 router.get('/plans', getPlans);
-
-// UPDATE
-router.put('/plans/:id', validate(updatePlanSchema), updatePlan);
-//getfeatures
-
 router.get('/plans/:id', getFeatures);
+
+// Admin only — create / update plans
+router.post('/plans', authenticate, requireRole('ADMIN'), validate(createPlanSchema), createPlan);
+router.put('/plans/:id', authenticate, requireRole('ADMIN'), validate(updatePlanSchema), updatePlan);
 
 export default router;

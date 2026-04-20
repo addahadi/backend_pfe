@@ -2,18 +2,7 @@ export const validate = (schema, property = 'body') => {
   return (req, res, next) => {
     const result = schema.safeParse(req[property]);
     if (!result.success) {
-      console.log('Validation Error: ', result.error.issues);
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
-          details: result.error.issues.map((i) => ({
-            field: i.path.join('.'),
-            message: i.message,
-          })),
-        },
-      });
+      return next(result.error);
     }
     if (property !== 'query') {
       req[property] = result.data;

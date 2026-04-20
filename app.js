@@ -1,9 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 import errorHandler from './middelwares/error.js';
 
@@ -11,44 +8,47 @@ import errorHandler from './middelwares/error.js';
 import authRoutes from './routes/auth/auth.route.js';
 import planRoutes from './routes/auth/plans.route.js';
 import subscriptionRoutes from './routes/auth/subscription.route.js';
-import switchRoutes from './routes/auth/switch.js';
-// import settingRoutes from './routes/auth/settings.js';
+import settingRoutes from './routes/auth/settings.js';
 
 // External service routes
-// import estimationRoutes from './modules/estimation/routes.js';
-// import materialRoutes from './routes/externalService/materials.js';
-// import serviceRoutes from './routes/externalService/services.js';
-// import estimationModuleRoutes from './modules/estimation/routes.js';
+import materialRoutes from './routes/externalService/materials.route.js';
+import serviceRoutes from './routes/externalService/services.route.js';
+
+// Estimation module
+import estimationRoutes from './modules/estimation/routes.js';
 
 // AI routes
-// import chatRoutes from './routes/Ai/chatRoutes.js';
+import chatRoutes from './routes/Ai/chat.route.js';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Auth
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 app.use('/api', authRoutes);
 app.use('/api', planRoutes);
 app.use('/api', subscriptionRoutes);
-app.use('/api/subscriptions', switchRoutes);
-// app.use('/api/settings', settingRoutes);
 
-// External services - DISABLED FOR TESTING
-// app.use('/api/estimations', estimationRoutes);
-// app.use('/api/materials', materialRoutes);
-// app.use('/api/services', serviceRoutes);
+// ─── Admin settings ───────────────────────────────────────────────────────────
+app.use('/api/settings', settingRoutes);
 
-// AI Chat - DISABLED FOR TESTING
-// app.use('/api/chat', chatRoutes);
-// app.use('/api/ai', chatRoutes);
+// ─── External services (materials & labor) ────────────────────────────────────
+app.use('/api/materials', materialRoutes);
+app.use('/api/services', serviceRoutes);
 
+// ─── Estimation engine ────────────────────────────────────────────────────────
+app.use('/api', estimationRoutes);
+
+// ─── AI Chat ──────────────────────────────────────────────────────────────────
+app.use('/api/ai', chatRoutes);
+
+// ─── Error handler (must be last) ────────────────────────────────────────────
 app.use(errorHandler);
 
-// معالجة الروابط غير الموجودة
+// 404 fallback
 app.use((req, res) => {
-    res.status(404).json({ success: false, message: "الرابط المطلوب غير موجود" });
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
 
 export default app;

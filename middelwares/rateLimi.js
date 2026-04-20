@@ -1,3 +1,5 @@
+import { AppError } from '../utils/AppError.js';
+
 const requests = {};
 
 export const rateLimit = (limit = 10, windowMs = 60000) => {
@@ -20,9 +22,7 @@ export const rateLimit = (limit = 10, windowMs = 60000) => {
 
     // تحقق limit
     if (requests[userId].length > limit) {
-      return res.status(429).json({
-        message: 'Too many requests, try later',
-      });
+      return next(new AppError('Too many requests, try later', 'RATE_LIMIT', 429));
     }
 
     next();

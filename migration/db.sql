@@ -1,4 +1,5 @@
-
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.ai_usage_history (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -82,8 +83,10 @@ CREATE TABLE public.estimation (
   total_budget double precision NOT NULL DEFAULT 0.0,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  subscription_id uuid,
   CONSTRAINT estimation_pkey PRIMARY KEY (estimation_id),
-  CONSTRAINT estimation_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id)
+  CONSTRAINT estimation_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id),
+  CONSTRAINT estimation_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(subscription_id)
 );
 CREATE TABLE public.estimation_detail_material (
   detail_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -149,6 +152,7 @@ CREATE TABLE public.field_definitions (
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   source_formula_id uuid,
   sort_order integer DEFAULT 0,
+  variable_name character varying,
   CONSTRAINT field_definitions_pkey PRIMARY KEY (field_id),
   CONSTRAINT field_definitions_formula_id_fkey FOREIGN KEY (formula_id) REFERENCES public.formulas(formula_id),
   CONSTRAINT field_definitions_field_type_id_fkey FOREIGN KEY (field_type_id) REFERENCES public.field_types(field_type_id),
@@ -212,6 +216,15 @@ CREATE TABLE public.material_config (
   CONSTRAINT material_config_pkey PRIMARY KEY (config_id),
   CONSTRAINT material_config_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id)
 );
+CREATE TABLE public.password_reset_tokens (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  token text NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.plan_types (
   plan_type_id uuid NOT NULL DEFAULT gen_random_uuid(),
   name_en character varying NOT NULL,
@@ -270,6 +283,8 @@ CREATE TABLE public.projects (
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   subscription_id uuid,
+  finished_at timestamp with time zone,
+  image_url text,
   CONSTRAINT projects_pkey PRIMARY KEY (project_id),
   CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT fk_projects_subscription FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(subscription_id)
@@ -282,16 +297,6 @@ CREATE TABLE public.refresh_tokens (
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id),
   CONSTRAINT refresh_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.password_reset_tokens (
-  id         uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id    uuid NOT NULL,
-  token      text NOT NULL,
-  expires_at timestamp with time zone NOT NULL,
-  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id),
-  CONSTRAINT password_reset_tokens_user_id_fkey
-    FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 CREATE TABLE public.resource_catalog (
   material_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -374,5 +379,6 @@ CREATE TABLE public.users (
   role USER-DEFINED DEFAULT 'CLIENT'::user_role,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  language character varying DEFAULT 'en'::character varying,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );

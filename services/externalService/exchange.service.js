@@ -1,6 +1,5 @@
 import axios from 'axios';
-import supabase from '../../supabaseClient.js';
-import { AppError } from '../../utils/AppError.js';
+import sql from '../../config/database.js';
 
 const getExchangeSettings = async () => {
     try {
@@ -13,22 +12,27 @@ const getExchangeSettings = async () => {
         if (newRate) {
             console.log('✅ Taux de change ACTUALISÉ récupéré : 1 USD = ' + newRate + ' DZD (Source: Internet)');
 
-            const { data: settings } = await supabase.from('financial_settings').select('market_factor').single();
-            const marketFactor = settings?.market_factor || 1.7;
+            const settingsRows = await sql`
+                SELECT market_factor
+                FROM financial_settings
+                LIMIT 1
+            `;
+            const marketFactor = settingsRows[0]?.market_factor ?? 1.7;
             const finalRate = parseFloat((newRate * marketFactor).toFixed(4));
 
             console.log('✅ API rate: ' + newRate + ' * ' + marketFactor + ' = ' + finalRate + ' DZD');
 
             const today = new Date().toISOString().split('T')[0];
 
-            await supabase.from('exchange_rate_log').insert([
-                {
-                    official_rate: newRate,
-                    final_applied_rate: finalRate,
-                    api_status: true,
-                    last_sync_at: today
-                },
-            ]);
+            await sql`
+                INSERT INTO exchange_rate_log (
+                    official_rate,
+                    final_applied_rate,
+                    api_status,
+                    last_sync_at
+                )
+                VALUES (${newRate}, ${finalRate}, true, ${today})
+            `;
             return { official_rate: newRate, final_applied_rate: finalRate, source: 'external_api' };
         }
     } catch (error) {
@@ -38,13 +42,13 @@ const getExchangeSettings = async () => {
             console.error('❌ Erreur API Exchange :', error.message);
         }
 
-        // محاولة جلب آخر قيمة من قاعدة البيانات (Cache/DB)
-        const { data } = await supabase
-            .from('exchange_rate_log')
-            .select('official_rate, final_applied_rate, last_sync_at')
-            .order('last_sync_at', { ascending: false })
-            .limit(1)
-            .single();
+        const rows = await sql`
+            SELECT official_rate, final_applied_rate, last_sync_at
+            FROM exchange_rate_log
+            ORDER BY last_sync_at DESC
+            LIMIT 1
+        `;
+        const data = rows[0];
 
         if (data) {
             console.log('✅ Taux récupéré depuis le cache local : 1 USD = ' + data.official_rate + ' DZD (Dernier sync: ' + data.last_sync_at + ')');

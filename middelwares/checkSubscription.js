@@ -1,5 +1,5 @@
 import sql from '../config/database.js';
-import { ForbiddenError } from '../utils/AppError.js';
+import { AppError } from '../utils/AppError.js';
 
 /*
 checkSubscription middleware
@@ -68,13 +68,7 @@ export default async function checkSubscription(req, res, next) {
 
     // ── 3. No subscription at all
     if (!subscription) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'NO_SUBSCRIPTION',
-          message: 'No active subscription. Please choose a plan.',
-        },
-      });
+      return next(new AppError('No active subscription. Please choose a plan.', 'NO_SUBSCRIPTION', 403));
     }
 
     // ── 4. Attach raw row — checkUsage needs subscription_id + features_snapshot

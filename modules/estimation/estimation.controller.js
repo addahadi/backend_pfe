@@ -7,12 +7,10 @@ import {
   UUIDParamSchema,
 } from './schemas.js';
 import * as service from './estimation.service.js';
-// import { generatePDF } from '../../services/externalService/pdfService.js';
-import { sendEmail } from '../../services/externalService/emailService.js';
-// import { getExchangeSettings } from '../../services/externalService/exchangeService.js';
-
-const generatePDF = () => null; // Temporary mock
-const getExchangeSettings = () => ({}); // Temporary mock
+import { generatePDF } from '../../services/externalService/pdf.service.js';
+import { sendEmail } from '../../services/externalService/email.service.js';
+import { getExchangeSettings } from '../../services/externalService/exchange.service.js';
+import { uploadBuffer } from '../../utils/cloudinary_upload.js';
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 
@@ -26,6 +24,13 @@ export async function health(_req, res) {
 export async function getRootCategories(_req, res) {
   try {
     ok(res, await service.getRootCategories());
+  } catch (err) { handleError(res, err); }
+}
+
+/** GET /categories/tree — recursive tree array for sidebar layout */
+export async function getCategoryTree(_req, res) {
+  try {
+    ok(res, await service.getCategoryTree());
   } catch (err) { handleError(res, err); }
 }
 
@@ -60,9 +65,11 @@ export async function getLeafCategory(req, res) {
  */
 export async function calculate(req, res) {
   try {
+    console.log(req);
     const input = CalculationInputSchema.parse(req.body);
 
     console.log('🚀 Calcul lancé pour le projet:', req.body.projectId || 'N/A (Brouillon)');
+    console.log('📥 Input reçu:', JSON.stringify(input, null, 2));
     console.log('🌐 Appel de l\'API Exchange Rate en cours...');
 
     const exchangeInfo = await getExchangeSettings();
@@ -95,7 +102,13 @@ export async function calculate(req, res) {
     }
 
     ok(res, result);
-  } catch (err) { handleError(res, err); }
+  } catch (err) {
+    // ✅ FIX: detailed server-side logging so the true error is never hidden
+    //         behind a generic "An unexpected error occurred" message.
+    console.error('❌ /calculate error —', err.name, ':', err.message);
+    console.error('   Stack:', err.stack);
+    handleError(res, err);
+  }
 }
 
 // ─── Projects ────────────────────────────────────────────────────────────────
@@ -103,7 +116,7 @@ export async function calculate(req, res) {
 /** GET /projects */
 export async function getProjects(req, res) {
   try {
-    const user_id = req.headers['x-user-id'];
+    const user_id = req.user?.userId || req.headers['x-user-id'];
     ok(res, await service.getProjects(user_id));
   } catch (err) { handleError(res, err); }
 }
@@ -111,7 +124,7 @@ export async function getProjects(req, res) {
 /** GET /projects/:id */
 export async function getProject(req, res) {
   try {
-    const user_id = req.headers['x-user-id'];
+    const user_id = req.user?.userId || req.headers['x-user-id'];
     const { id } = UUIDParamSchema.parse(req.params);
     const project = await service.getProjectById(id, user_id);
     if (!project) return notFound(res, 'Project not found');
@@ -125,9 +138,17 @@ export async function getProject(req, res) {
  */
 export async function createProject(req, res) {
   try {
-    const user_id = req.headers['x-user-id'];
+    const user_id = req.user?.userId || req.headers['x-user-id'];
     const dto = CreateProjectSchema.parse(req.body);
-    ok(res, await service.createProject(user_id, dto), 201);
+    
+    let image_url = null;
+    if (req.file) {
+      console.log(`🚀 Uploading image for project: ${dto.name}`);
+      image_url = await uploadBuffer(req.file.buffer);
+      console.log(`✅ Image uploaded: ${image_url}`);
+    }
+
+    ok(res, await service.createProject(user_id, { ...dto, image_url }), 201);
   } catch (err) { handleError(res, err); }
 }
 
@@ -178,7 +199,7 @@ export async function removeLeaf(req, res) {
 export async function exportProjectReport(req, res) {
   try {
     const { id } = req.params;
-    const user_id = req.headers['x-user-id']; // Optional user check
+    const user_id = req.user?.userId || req.headers['x-user-id']; // Optional user check
 
     // 1. Liaison des données via le Service
     const project = await service.getProjectById(id, user_id);

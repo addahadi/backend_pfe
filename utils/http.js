@@ -1,5 +1,7 @@
-import { ZodError } from 'zod';
 import { AppError } from './AppError.js';
+
+import { z } from 'zod';
+const ZodError = z.ZodError;
 
 // ─── Success ──────────────────────────────────────────────────────────────────
 
@@ -80,7 +82,8 @@ export function handleError(res, err) {
     success: false,
     error: {
       code:    'INTERNAL_ERROR',
-      message: 'An unexpected error occurred',
+      message: err.message,
+      stack: err.stack,
     },
   });
 }

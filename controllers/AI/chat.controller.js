@@ -1,6 +1,7 @@
 import sql from '../../config/database.js';
 import * as aiService from '../../services/Ai/aiService.js';
 import { NotFoundError, AuthError } from '../../utils/AppError.js';
+import { ok } from '../../utils/http.js';
 
 // ─────────────────────────────────────────────
 // GET /api/questions
@@ -31,7 +32,7 @@ export const getQuestionsByDisplayLocation = async (req, res, next) => {
       },
     }));
 
-    res.status(200).json({ questions, display_location, user_id: req.user.userId });
+    ok(res, { questions, display_location, user_id: req.user.userId });
   } catch (error) {
     next(error);
   }
@@ -73,7 +74,7 @@ export const getAnswerByQuestionId = async (req, res, next) => {
     `;
 
     // 3. Return bilingual content + the resolved reply for the chosen language
-    res.status(200).json({
+    ok(res, {
       id: data.id,
       question: {
         en: data.question_text_en,
@@ -112,7 +113,7 @@ export const handleExpertStage = async (req, res, next) => {
     `;
 
     // 3. Return AI response
-    res.status(200).json({ message: aiReply, user_id: userId });
+    ok(res, { message: aiReply, user_id: userId });
   } catch (error) {
     next(error);
   }

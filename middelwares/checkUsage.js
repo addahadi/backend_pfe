@@ -1,4 +1,5 @@
 import sql from '../config/database.js';
+import { AppError } from '../utils/AppError.js';
 
 /*
 usageMap
@@ -62,10 +63,7 @@ export default function checkUsage(featureKey) {
 
       // Safeguard — should never happen if middleware order is correct
       if (!subscription) {
-        return res.status(403).json({
-          success: false,
-          error: { code: 'NO_SUBSCRIPTION', message: 'No active subscription' },
-        });
+        return next(new AppError('No active subscription', 'NO_SUBSCRIPTION', 403));
       }
 
       const features = subscription.features_snapshot;
@@ -73,13 +71,7 @@ export default function checkUsage(featureKey) {
 
       // Feature key not in this plan's snapshot
       if (limit === undefined || limit === null) {
-        return res.status(403).json({
-          success: false,
-          error: {
-            code: 'FEATURE_NOT_AVAILABLE',
-            message: 'This feature is not available in your current plan',
-          },
-        });
+        return next(new AppError('This feature is not available in your current plan', 'FEATURE_NOT_AVAILABLE', 403));
       }
 
       // Unlimited — skip counting
@@ -92,27 +84,16 @@ export default function checkUsage(featureKey) {
       const getUsage = usageMap[featureKey];
 
       if (!getUsage) {
-        return res.status(500).json({
-          success: false,
-          error: {
-            code: 'INTERNAL_ERROR',
-            message: `No usage counter implemented for: ${featureKey}`,
-          },
-        });
+        return next(new AppError(`No usage counter implemented for: ${featureKey}`, 'INTERNAL_ERROR', 500));
       }
 
       const used       = await getUsage(userId, subscription.subscription_id);
       const limitParsed = parseInt(limit);
 
       if (used >= limitParsed) {
-        return res.status(403).json({
-          success: false,
-          error: {
-            code: 'LIMIT_REACHED',
-            message: `You have reached your limit for ${featureKey.replace('_limit', '').replace('_', ' ')}`,
-            details: { featureKey, used, limit: limitParsed },
-          },
-        });
+        const err = new AppError(`You have reached your limit for ${featureKey.replace('_limit', '').replace('_', ' ')}`, 'LIMIT_REACHED', 403);
+        err.details = [{ featureKey, used, limit: limitParsed }];
+        return next(err);
       }
 
       // Attach for controller use (optional but useful)

@@ -1,4 +1,4 @@
-import sql from '../../config/database.js'
+import sql from '../../config/database.js';
 
 export class PostgresEngineRepository {
 
@@ -41,7 +41,9 @@ export class PostgresEngineRepository {
         field_type_id,
         unit_id,
         source_formula_id,
-        label_en AS label,
+        label_en       AS label,
+        label_ar,
+        variable_name,
         required,
         default_value,
         sort_order
@@ -69,8 +71,6 @@ export class PostgresEngineRepository {
   }
 
   async getCoefficients(category_id, config_group_id) {
-    // If config_group_id is null, return coefficients with no config group
-    // (category-wide defaults). If set, return only that config group's rows.
     return sql`
       SELECT
         coefficient_id,
@@ -97,36 +97,38 @@ export class PostgresEngineRepository {
     if (!rows[0]) throw new RepositoryError(`Unit not found: ${unit_id}`);
     return rows[0];
   }
+
   async getLatestExchangeRate() {
     const rows = await sql`
-    SELECT official_rate as rate 
-    FROM public.exchange_rate_log 
-    ORDER BY created_at DESC 
-    LIMIT 1
-  `;
+      SELECT official_rate AS rate
+      FROM exchange_rate_log
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
     return rows[0]?.rate || 134.0;
   }
 
   async getMarketFactor() {
     const rows = await sql`
-    SELECT market_factor
-    FROM public.financial_settings
-    LIMIT 1
-  `;
-    if (!rows[0]) throw new RepositoryError('Market factor unreachable in financial_settings');
+      SELECT market_factor
+      FROM financial_settings
+      LIMIT 1
+    `;
+    if (!rows[0]) throw new RepositoryError('Market factor not found in financial_settings');
     return rows[0].market_factor;
   }
+
   async getProjectDetails(projectId) {
     const rows = await sql`
-    SELECT 
-      pd.results, 
-      pd.values,
-      c.name_en as category_name
-    FROM public.project_details pd
-    JOIN public.categories c ON pd.category_id = c.category_id
-    WHERE pd.project_id = ${projectId}
-    LIMIT 1
-  `;
+      SELECT
+        pd.results,
+        pd.values,
+        c.name_en AS category_name
+      FROM project_details pd
+      JOIN categories c ON pd.category_id = c.category_id
+      WHERE pd.project_id = ${projectId}
+      LIMIT 1
+    `;
     return rows[0];
   }
 }

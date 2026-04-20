@@ -6,10 +6,10 @@ import nodemailer from 'nodemailer';
 // إعدادات محرك البريد
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
+  auth: process.env.EMAIL_USER ? {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
-  },
+  } : undefined, // fallback if undefined
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -80,6 +80,10 @@ export const sendConfirmationEmail = async (recipientEmail, confirmationToken) =
   };
 
   try {
+    if (!process.env.EMAIL_USER) {
+      console.log(`[MOCK EMAIL to ${recipientEmail}] Confirm Link: ${confirmationLink}`);
+      return; // Skip real email logic in dev without env vars
+    }
     await transporter.sendMail(mailOptions);
     console.log(`[sendConfirmationEmail] Email sent to ${recipientEmail}`);
   } catch (err) {

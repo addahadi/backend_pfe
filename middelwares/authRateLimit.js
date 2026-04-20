@@ -1,3 +1,5 @@
+import { AppError } from '../utils/AppError.js';
+
 /**
  * IP-based rate limiter for unauthenticated auth routes
  * (login, register, forgot-password).
@@ -22,14 +24,9 @@ export const authRateLimit = (limit = 10, windowMs = 60_000) => {
     store.set(ip, bucket);
 
     if (bucket.length > limit) {
-      return res.status(429).json({
-        success: false,
-        error: {
-          code: 'RATE_LIMIT',
-          message: 'Too many requests, please try again later.',
-          retryAfter: Math.ceil(windowMs / 1000),
-        },
-      });
+      const err = new AppError('Too many requests, please try again later.', 'RATE_LIMIT', 429);
+      err.details = [{ retryAfter: Math.ceil(windowMs / 1000) }];
+      return next(err);
     }
 
     next();
