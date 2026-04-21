@@ -1,3 +1,8 @@
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Full updated app.js for reference:
+// ─────────────────────────────────────────────────────────────────────────────
+
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -5,20 +10,26 @@ import cors from 'cors';
 import errorHandler from './middelwares/error.js';
 
 // Auth routes
-import authRoutes from './routes/auth/auth.route.js';
-import planRoutes from './routes/auth/plans.route.js';
+import authRoutes         from './routes/auth/auth.route.js';
+import planRoutes         from './routes/auth/plans.route.js';
 import subscriptionRoutes from './routes/auth/subscription.route.js';
-import settingRoutes from './routes/auth/settings.js';
+import settingRoutes      from './routes/auth/settings.js';
 
 // External service routes
 import materialRoutes from './routes/externalService/materials.route.js';
-import serviceRoutes from './routes/externalService/services.route.js';
+import serviceRoutes  from './routes/externalService/services.route.js';
 
 // Estimation module
 import estimationRoutes from './modules/estimation/routes.js';
 
 // AI routes
 import chatRoutes from './routes/Ai/chat.route.js';
+
+// Admin modules (categories / formulas / fields / outputs / coefficients)
+import modulesRouter from './routes/modules.routes.js';
+
+// Admin dashboard + subscribers
+import adminRouter from './routes/admin.routes.js';
 
 const app = express();
 
@@ -33,15 +44,21 @@ app.use('/api', subscriptionRoutes);
 // ─── Admin settings ───────────────────────────────────────────────────────────
 app.use('/api/settings', settingRoutes);
 
-// ─── External services (materials & labor) ────────────────────────────────────
+// ─── External services ────────────────────────────────────────────────────────
 app.use('/api/materials', materialRoutes);
-app.use('/api/services', serviceRoutes);
+app.use('/api/services',  serviceRoutes);
 
 // ─── Estimation engine ────────────────────────────────────────────────────────
 app.use('/api', estimationRoutes);
 
 // ─── AI Chat ──────────────────────────────────────────────────────────────────
 app.use('/api/ai', chatRoutes);
+
+// ─── Admin: modules (categories / formulas / formula outputs / fields …) ─────
+app.use('/api/admin/modules', modulesRouter);
+
+// ─── Admin: dashboard stats + subscribers ─────────────────────────────────────
+app.use('/api/admin', adminRouter);
 
 // ─── Error handler (must be last) ────────────────────────────────────────────
 app.use(errorHandler);

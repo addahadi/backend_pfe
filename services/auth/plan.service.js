@@ -22,9 +22,12 @@ export const getPlans = async () => {
       p.name_ar,
       p.price,
       p.duration,
+      p.plan_type_id,
+      pt.name_en as plan_type_name_en,
       f.feature_key,
       f.feature_value_en
     FROM plans p
+    LEFT JOIN plan_types pt ON p.plan_type_id = pt.plan_type_id
     LEFT JOIN features f ON p.plan_id = f.plan_id
   `;
 
@@ -38,12 +41,17 @@ export const getPlans = async () => {
         name_ar: row.name_ar,
         price: row.price,
         duration: row.duration,
-        features: {},
+        plan_type_id: row.plan_type_id,
+        plan_type_name: row.plan_type_name_en,
+        features: [],
       };
     }
 
     if (row.feature_key) {
-      plans[row.plan_id].features[row.feature_key] = row.feature_value_en;
+      plans[row.plan_id].features.push({
+        key: row.feature_key,
+        val: row.feature_value_en,
+      });
     }
   });
 
@@ -74,8 +82,10 @@ export const updatePlan = async (planId, data) => {
       WHERE plan_id = ${planId}
     `;
 
-    // 3️⃣ UPSERT features (🔥 هنا السر)
+    // 3️⃣ Refined feature update: delete existing and re-insert
     if (Array.isArray(features)) {
+      await tx`DELETE FROM features WHERE plan_id = ${planId}`;
+      
       for (const feature of features) {
         await tx`
           INSERT INTO features (
@@ -92,10 +102,6 @@ export const updatePlan = async (planId, data) => {
             ${feature.value},
             ${feature.value}
           )
-          ON CONFLICT (plan_id, feature_key)
-          DO UPDATE SET 
-            feature_value_en = EXCLUDED.feature_value_en,
-            feature_value_ar = EXCLUDED.feature_value_ar
         `;
       }
     }
@@ -129,4 +135,47 @@ export const getPlanFeatures = async (planId) => {
 
   // 4️⃣ إرجاع فقط features
   return formattedFeatures;
+};
+// delete plan
+export const deletePlan = async (planId) => {
+  return await sql.begin(async (tx) => {
+    await tx`DELETE FROM features WHERE plan_id = ${planId}`;
+    const result = await tx`DELETE FROM plans WHERE plan_id = ${planId} RETURNING plan_id`;
+    if (!result.length) throw new NotFoundError('Plan not found');
+    return { message: 'Plan deleted successfully' };
+  });
+};
+
+// --- Plan Types ---
+
+export const getPlanTypes = async () => {
+  return await sql`SELECT plan_type_id as id, name_en, name_ar FROM plan_types ORDER BY created_at DESC`;
+};
+
+export const createPlanType = async ({ name_en, name_ar }) => {
+  const result = await sql`
+    INSERT INTO plan_types (name_en, name_ar)
+    VALUES (${name_en}, ${name_ar})
+    RETURNING plan_type_id as id, name_en, name_ar
+  `;
+  return result[0];
+};
+
+export const updatePlanType = async (id, { name_en, name_ar }) => {
+  const result = await sql`
+    UPDATE plan_types
+    SET 
+      name_en = COALESCE(${name_en ?? null}, name_en),
+      name_ar = COALESCE(${name_ar ?? null}, name_ar)
+    WHERE plan_type_id = ${id}
+    RETURNING plan_type_id as id, name_en, name_ar
+  `;
+  if (!result.length) throw new NotFoundError('Plan type not found');
+  return result[0];
+};
+
+export const deletePlanType = async (id) => {
+  const result = await sql`DELETE FROM plan_types WHERE plan_type_id = ${id} RETURNING plan_type_id`;
+  if (!result.length) throw new NotFoundError('Plan type not found');
+  return { message: 'Plan type deleted successfully' };
 };

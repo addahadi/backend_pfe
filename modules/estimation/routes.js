@@ -80,9 +80,11 @@ router.post(
   '/estimation/save-leaf',
   authenticate,
   checkSubscription,
+  checkUsage('leaf_calculations_limit'),
   validate(SaveLeafResultSchema),
   ctrl.saveLeafResult,
 );
+
 
 router.delete(
   '/estimation/leaf',

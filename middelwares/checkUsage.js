@@ -21,7 +21,7 @@ const usageMap = {
     const result = await sql`
       SELECT COUNT(*) AS count
       FROM projects
-      WHERE user_id = ${userId}
+      WHERE user_id        = ${userId}
         AND subscription_id = ${subscriptionId}
     `;
     return parseInt(result[0].count);
@@ -31,17 +31,19 @@ const usageMap = {
     const result = await sql`
       SELECT COUNT(*) AS count
       FROM ai_usage_history
-      WHERE user_id = ${userId}
+      WHERE user_id        = ${userId}
         AND subscription_id = ${subscriptionId}
     `;
     return parseInt(result[0].count);
   },
 
-  estimation_limit: async (userId, subscriptionId) => {
+  leaf_calculations_limit: async (userId, subscriptionId) => {
     const result = await sql`
       SELECT COUNT(*) AS count
-      FROM estimation
-      WHERE subscription_id = ${subscriptionId}
+      FROM project_details pd
+      JOIN projects p ON p.project_id = pd.project_id
+      WHERE p.user_id         = ${userId}
+        AND p.subscription_id  = ${subscriptionId}
     `;
     return parseInt(result[0].count);
   },
