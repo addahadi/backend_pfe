@@ -1,64 +1,68 @@
-import sql from '../../config/database.js';
-import * as materialService from '../../services/externalService/material.service.js';
-import { ok, handleError, notFound } from '../../utils/http.js';
-import { ValidationError } from '../../utils/AppError.js';
+import { z } from 'zod';
+import { ok, notFound, handleError } from '../../utils/http.js';
+import * as svc from '../../services/externalService/material.service.js';
 
-// 1. Get all materials
+const optUuid = z.preprocess(v => (v === '' ? null : v), z.string().uuid().nullable().optional());
+
+const CreateMaterialSchema = z.object({
+  material_name_en:     z.string().min(1, 'Name (EN) is required'),
+  material_name_ar:     z.string().default(''),
+  formula_id:           z.string(),
+  unit_id:              z.string(),
+  material_type:        z.enum(['PRIMARY', 'ACCESSORY']).default('PRIMARY'),
+  unit_price_usd:       z.number().min(0).default(0),
+  min_price_usd:        z.number().min(0).default(0),
+  max_price_usd:        z.number().min(0).default(0),
+  default_waste_factor: z.number().min(0).max(1).default(0),
+});
+
+const UpdateMaterialSchema = z.object({
+  material_name_en:     z.string().min(1).optional(),
+  material_name_ar:     z.string().optional(),
+  formula_id:           z.string().optional(),
+  unit_id:              z.string(),
+  material_type:        z.enum(['PRIMARY', 'ACCESSORY']).optional(),
+  unit_price_usd:       z.number().min(0).optional(),
+  min_price_usd:        z.number().min(0).optional(),
+  max_price_usd:        z.number().min(0).optional(),
+  default_waste_factor: z.number().min(0).max(1).optional(),
+});
+
 export const getAllMaterials = async (req, res) => {
-    try {
-        const materials = await materialService.getAllMaterials();
-        ok(res, materials);
-    } catch (err) {
-        handleError(res, err);
-    }
+  try {
+    const { search = '', category_id = '', page = '1', limit = '50' } = req.query;
+    const data = await svc.getAllMaterials({
+      search, categoryId: category_id,
+      page: parseInt(page), limit: parseInt(limit),
+    });
+    ok(res, data);
+  } catch (err) { handleError(res, err); }
 };
 
-// 2. Add new material
+export const getMaterialFormulas = async (req, res) => {
+  try { ok(res, await svc.getMaterialFormulas()); }
+  catch (err) { handleError(res, err); }
+};
+
 export const addMaterial = async (req, res) => {
-    try {
-        const newMaterial = req.body;
-        const [data] = await sql`
-            INSERT INTO resource_catalog ${sql(newMaterial)}
-            RETURNING *
-        `;
-
-        if (!data) throw new ValidationError('Insert failed');
-        ok(res, data, 201);
-    } catch (err) {
-        handleError(res, err);
-    }
+  try {
+    const dto = CreateMaterialSchema.parse(req.body);
+    ok(res, await svc.createMaterial(dto), 201);
+  } catch (err) { handleError(res, err); }
 };
 
-// 3. Update material
 export const updateMaterial = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updatedData = req.body;
-        const [data] = await sql`
-            UPDATE resource_catalog
-            SET ${sql(updatedData, Object.keys(updatedData))}
-            WHERE material_id = ${id}
-            RETURNING *
-        `;
-
-        if (!data) return notFound(res, `Material with id ${id} not found`);
-        ok(res, data);
-    } catch (err) {
-        handleError(res, err);
-    }
+  try {
+    const dto  = UpdateMaterialSchema.parse(req.body);
+    const data = await svc.updateMaterial(req.params.id, dto);
+    if (!data) return notFound(res, `Material ${req.params.id} not found`);
+    ok(res, data);
+  } catch (err) { handleError(res, err); }
 };
 
-// 4. Delete material
 export const deleteMaterial = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const result = await sql`
-            DELETE FROM resource_catalog
-            WHERE material_id = ${id}
-        `;
-
-        ok(res, { message: 'Material deleted successfully' });
-    } catch (err) {
-        handleError(res, err);
-    }
+  try {
+    await svc.deleteMaterial(req.params.id);
+    ok(res, { deleted: true });
+  } catch (err) { handleError(res, err); }
 };

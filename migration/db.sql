@@ -12,6 +12,13 @@ CREATE TABLE public.ai_usage_history (
   CONSTRAINT ai_usage_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT fk_ai_subscription FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(subscription_id)
 );
+CREATE TABLE public.app_translations (
+  translation_key text NOT NULL,
+  text_en text NOT NULL,
+  text_ar text NOT NULL,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT app_translations_pkey PRIMARY KEY (translation_key)
+);
 CREATE TABLE public.article_tags (
   article_id uuid NOT NULL,
   tag_id uuid NOT NULL,
@@ -84,6 +91,7 @@ CREATE TABLE public.estimation (
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   subscription_id uuid,
+  budget_category text,
   CONSTRAINT estimation_pkey PRIMARY KEY (estimation_id),
   CONSTRAINT estimation_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id),
   CONSTRAINT estimation_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(subscription_id)
@@ -177,8 +185,9 @@ CREATE TABLE public.formula_output (
   output_id uuid NOT NULL DEFAULT gen_random_uuid(),
   formula_id uuid NOT NULL,
   output_key character varying NOT NULL,
-  output_label character varying NOT NULL,
+  output_label_en character varying NOT NULL,
   output_unit_id uuid,
+  output_label_ar character varying,
   CONSTRAINT formula_output_pkey PRIMARY KEY (output_id),
   CONSTRAINT formula_output_formula_id_fkey FOREIGN KEY (formula_id) REFERENCES public.formulas(formula_id),
   CONSTRAINT formula_output_unit_id_fkey FOREIGN KEY (output_unit_id) REFERENCES public.units(unit_id)
@@ -186,14 +195,13 @@ CREATE TABLE public.formula_output (
 CREATE TABLE public.formulas (
   formula_id uuid NOT NULL DEFAULT gen_random_uuid(),
   category_id uuid,
-  output_label_en character varying,
-  output_label_ar character varying,
   expression text NOT NULL,
   output_unit uuid,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   formula_type USER-DEFINED DEFAULT 'MATERIAL'::formula_type,
-  name character varying,
+  name_en character varying,
   version integer DEFAULT 1,
+  name_ar text,
   CONSTRAINT formulas_pkey PRIMARY KEY (formula_id),
   CONSTRAINT formulas_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id),
   CONSTRAINT formulas_output_unit_fkey FOREIGN KEY (output_unit) REFERENCES public.units(unit_id)
@@ -285,6 +293,7 @@ CREATE TABLE public.projects (
   subscription_id uuid,
   finished_at timestamp with time zone,
   image_url text,
+  budget_category text,
   CONSTRAINT projects_pkey PRIMARY KEY (project_id),
   CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT fk_projects_subscription FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(subscription_id)
@@ -380,5 +389,6 @@ CREATE TABLE public.users (
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   language character varying DEFAULT 'en'::character varying,
+  avatar_url text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );

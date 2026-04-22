@@ -11,14 +11,15 @@ import errorHandler from './middelwares/error.js';
 
 // Auth routes
 import authRoutes         from './routes/auth/auth.route.js';
-import planRoutes         from './routes/auth/plans.route.js';
+import planRoutes         from './routes/auth/plans.routes.js';
 import subscriptionRoutes from './routes/auth/subscription.route.js';
 import settingRoutes      from './routes/auth/settings.js';
 
 // External service routes
-import materialRoutes from './routes/externalService/materials.route.js';
+import materialRoutes from './routes/externalService/materials.routes.js';
 import serviceRoutes  from './routes/externalService/services.route.js';
 
+import unitsRouter from './routes/units.routes.js'
 // Estimation module
 import estimationRoutes from './modules/estimation/routes.js';
 
@@ -56,6 +57,7 @@ app.use('/api/ai', chatRoutes);
 
 // ─── Admin: modules (categories / formulas / formula outputs / fields …) ─────
 app.use('/api/admin/modules', modulesRouter);
+app.use('/api/units', unitsRouter);
 
 // ─── Admin: dashboard stats + subscribers ─────────────────────────────────────
 app.use('/api/admin', adminRouter);

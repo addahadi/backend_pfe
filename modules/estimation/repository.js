@@ -8,7 +8,9 @@ export class PostgresEngineRepository {
         formula_id,
         category_id,
         formula_type,
-        name,
+        COALESCE(name_en, name_ar, 'Unnamed Formula') AS name,
+        name_en,
+        name_ar,
         expression,
         output_unit AS output_unit_id,
         version
@@ -25,7 +27,9 @@ export class PostgresEngineRepository {
         output_id,
         formula_id,
         output_key,
-        output_label,
+        COALESCE(output_label_en, output_label_ar, output_key) AS output_label,
+        output_label_en,
+        output_label_ar,
         output_unit_id
       FROM formula_output
       WHERE formula_id = ${formula_id}
@@ -61,7 +65,9 @@ export class PostgresEngineRepository {
         unit_id,
         formula_id,
         material_type,
-        material_name_en AS material_name,
+        material_name_en,
+        material_name_ar,
+        COALESCE(material_name_en, material_name_ar, 'Unnamed Material') AS material_name,
         unit_price_usd,
         default_waste_factor
       FROM resource_catalog

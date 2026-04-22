@@ -254,8 +254,7 @@ export const getMySubscriptionForClient = async (userId) => {
 ========================
 GET MY USAGE WITH LIMITS
 ========================
-*/
-export const getMyUsageWithLimits = async (userId) => {
+*/export const getMyUsageWithLimits = async (userId) => {
   const subResult = await sql`
     SELECT subscription_id, end_date, features_snapshot
     FROM subscriptions
@@ -269,13 +268,51 @@ export const getMyUsageWithLimits = async (userId) => {
   const sub = subResult[0];
   const subId = sub.subscription_id;
   const features = sub.features_snapshot ?? {};
+  console.log(features);
 
-  const [projectsResult, aiResult, estimationResult] = await Promise.all([
-    sql`SELECT COUNT(*) AS count FROM projects        WHERE user_id = ${userId} AND subscription_id = ${subId}`,
-    sql`SELECT COUNT(*) AS count FROM ai_usage_history WHERE user_id = ${userId} AND subscription_id = ${subId}`,
-    sql`SELECT COUNT(*) AS count FROM estimation       WHERE subscription_id = ${subId}`,
+  // 1. Define usageMap FIRST before calling it
+  const usageMap = {
+    projects_limit: async (userId, subscriptionId) => {
+      console.log(userId, subscriptionId);
+      const result = await sql`
+        SELECT COUNT(*) AS count
+        FROM projects
+        WHERE user_id = ${userId}
+          AND subscription_id = ${subscriptionId}
+      `;
+      console.log(result)
+      return parseInt(result[0].count);
+    },
+
+    ai_usage_limit: async (userId, subscriptionId) => {
+      const result = await sql`
+        SELECT COUNT(*) AS count
+        FROM ai_usage_history
+        WHERE user_id = ${userId}
+          AND subscription_id = ${subscriptionId}
+      `;
+      return parseInt(result[0].count);
+    },
+
+    leaf_calculations_limit: async (userId, subscriptionId) => {
+      const result = await sql`
+        SELECT COUNT(*) AS count
+        FROM project_details pd
+        JOIN projects p ON p.project_id = pd.project_id
+        WHERE p.user_id = ${userId}
+          AND p.subscription_id = ${subscriptionId}
+      `;
+      return parseInt(result[0].count);
+    },
+  };
+
+  // 2. NOW execute Promise.all
+  const [projectsCount, aiCount, leafCalculationsCount] = await Promise.all([
+    usageMap.projects_limit(userId, subId),
+    usageMap.ai_usage_limit(userId, subId),
+    usageMap.leaf_calculations_limit(userId, subId)
   ]);
-
+  console.log(projectsCount, aiCount, leafCalculationsCount);
   const entry = (featureKey, rawCount) => {
     const limitRaw = features[featureKey];
     const unlimited = limitRaw === 'unlimited';
@@ -290,17 +327,17 @@ export const getMyUsageWithLimits = async (userId) => {
     };
   };
 
+  // 3. Update the return statement to use the exact destructured variables
   return {
     subscription_id: subId,
     plan_ends_at: sub.end_date,
     usage: {
-      projects: entry('projects_limit', projectsResult[0].count),
-      ai: entry('ai_usage_limit', aiResult[0].count),
-      estimations: entry('estimation_limit', estimationResult[0].count),
+      projects: entry('projects_limit', projectsCount),
+      ai: entry('ai_usage_limit', aiCount),
+      estimations: entry('leaf_calculations_limit', leafCalculationsCount),
     },
   };
 };
-
 /*
 ========================
 GET ALL SUBSCRIPTIONS (admin)

@@ -49,6 +49,7 @@ export const getAnswerByQuestionId = async (req, res, next) => {
   const { questionId } = req.params;
   const { language = 'en' } = req.body; // already validated/defaulted by Zod
   const userId = req.user?.userId;
+  const subscriptionId = req.subscription?.subscription_id ?? null;
 
   if (!userId) throw new AuthError('Authenticated user id is missing.');
 
@@ -69,8 +70,8 @@ export const getAnswerByQuestionId = async (req, res, next) => {
 
     // 2. Log usage in ai_usage_history
     await sql`
-      INSERT INTO ai_usage_history (user_id, usage_date, usage_type, created_at)
-      VALUES (${userId}, CURRENT_DATE, ${'QUERY'}, CURRENT_TIMESTAMP)
+      INSERT INTO ai_usage_history (user_id, usage_date, usage_type, created_at, subscription_id)
+      VALUES (${userId}, CURRENT_DATE, ${'QUERY'}, CURRENT_TIMESTAMP, ${subscriptionId})
     `;
 
     // 3. Return bilingual content + the resolved reply for the chosen language
@@ -101,6 +102,7 @@ export const getAnswerByQuestionId = async (req, res, next) => {
 export const handleExpertStage = async (req, res, next) => {
   const { user_message } = req.body;
   const userId = req.user.userId;
+  const subscriptionId = req.subscription?.subscription_id ?? null;
 
   try {
     // 1. Get response from Groq
@@ -108,8 +110,8 @@ export const handleExpertStage = async (req, res, next) => {
 
     // 2. Log usage history
     await sql`
-      INSERT INTO ai_usage_history (user_id, usage_date, usage_type, created_at)
-      VALUES (${userId}, CURRENT_DATE, ${'ANALYSIS'}, CURRENT_TIMESTAMP)
+      INSERT INTO ai_usage_history (user_id, usage_date, usage_type, created_at, subscription_id)
+      VALUES (${userId}, CURRENT_DATE, ${'ANALYSIS'}, CURRENT_TIMESTAMP, ${subscriptionId})
     `;
 
     // 3. Return AI response

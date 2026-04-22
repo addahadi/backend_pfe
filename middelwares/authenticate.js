@@ -3,15 +3,6 @@ import sql from '../config/database.js';
 import { AuthError, NotFoundError, AppError } from '../utils/AppError.js';
 
 export default async function authenticate(req, res, next) {
-  // Temporary bypass for development
-  req.user = {
-    userId: '141fd933-a31a-4792-9805-8c0d7f52b204', // Valid UUID from DB
-    role: 'ADMIN',
-    status: 'ACTIVE'
-  };
-  return next();
-
-  /* Original code disabled:
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return next(new AuthError('Token required'));
@@ -28,5 +19,4 @@ export default async function authenticate(req, res, next) {
   } catch (err) {
     return next(new AuthError('Invalid or expired token'));
   }
-  */
 }

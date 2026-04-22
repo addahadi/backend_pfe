@@ -1,13 +1,38 @@
 import nodemailer from 'nodemailer';
 
 const sendEmail = async (to, data, pdfBuffer) => {
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
+    const emailUser =
+        process.env.EMAIL_USER ||
+        process.env.SMTP_USER ||
+        process.env.MAIL_USER;
+
+    const emailPass =
+        process.env.EMAIL_PASS ||
+        process.env.EMAIL_PASSWORD ||
+        process.env.SMTP_PASS ||
+        process.env.MAIL_PASS;
+
+    if (!emailUser || !emailPass) {
+        throw new Error('Email credentials are missing. Set EMAIL_USER + EMAIL_PASSWORD (or EMAIL_PASS).');
+    }
+
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = Number(process.env.SMTP_PORT) || 587;
+    const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+
+    const transporter = nodemailer.createTransport(
+        smtpHost
+            ? {
+                host: smtpHost,
+                port: smtpPort,
+                secure: smtpSecure,
+                auth: { user: emailUser, pass: emailPass },
+            }
+            : {
+                service: process.env.EMAIL_SERVICE || 'gmail',
+                auth: { user: emailUser, pass: emailPass },
+            }
+    );
 
     const itemsRows = (data.material_lines || []).map(item => `
         <tr>
@@ -33,7 +58,7 @@ const sendEmail = async (to, data, pdfBuffer) => {
     `;
 
     const mailOptions = {
-        from: `"APEX Smart Construction" <${process.env.EMAIL_USER}>`,
+        from: process.env.EMAIL_FROM || `"APEX Smart Construction" <${emailUser}>`,
         to: to,
         subject: `Budget Estimation: ${data.projectName || data.categoryName || 'Project'}`,
         html: htmlContent

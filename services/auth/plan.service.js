@@ -43,15 +43,13 @@ export const getPlans = async () => {
         duration: row.duration,
         plan_type_id: row.plan_type_id,
         plan_type_name: row.plan_type_name_en,
-        features: [],
+        plan_type_name: row.plan_type_name_en,
+        features: {},
       };
     }
 
     if (row.feature_key) {
-      plans[row.plan_id].features.push({
-        key: row.feature_key,
-        val: row.feature_value_en,
-      });
+      plans[row.plan_id].features[row.feature_key] = row.feature_value_en;
     }
   });
 

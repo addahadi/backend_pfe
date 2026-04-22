@@ -1,4 +1,5 @@
 import { ok, handleError, notFound } from './http.js';
+import sql from '../../config/database.js';
 import {
   CalculationInputSchema,
   CreateProjectSchema,
@@ -139,6 +140,7 @@ export async function getProject(req, res) {
 export async function createProject(req, res) {
   try {
     const user_id = req.user?.userId || req.headers['x-user-id'];
+    const subscription_id = req.subscription?.subscription_id;
     const dto = CreateProjectSchema.parse(req.body);
     
     let image_url = null;
@@ -148,7 +150,7 @@ export async function createProject(req, res) {
       console.log(`✅ Image uploaded: ${image_url}`);
     }
 
-    ok(res, await service.createProject(user_id, { ...dto, image_url }), 201);
+    ok(res, await service.createProject(user_id, { ...dto, image_url, subscription_id }), 201);
   } catch (err) { handleError(res, err); }
 }
 
@@ -221,78 +223,133 @@ export async function exportProjectReport(req, res) {
 
     const resolvedProjectName = project?.name || 'Projet sans nom';
 
-    // 4. Recalculate Live Data using CalculationEngine
-    const allMaterials = [];
-    const allIntermediate = [];
-    let liveGrandTotal = 0;
-
-    // Refresh exchange rates globally before calculation loop
-    await getExchangeSettings();
-
-    for (const pd of details) {
-      if (!pd.selected_formula_id) continue;
-
-      const input = {
-        category_id: pd.category_id,
-        selected_formula_id: pd.selected_formula_id,
-        selected_config_id: pd.selected_config_id,
-        field_values: typeof pd.values === 'string' ? JSON.parse(pd.values) : (pd.values || {})
-      };
-
-      try {
-        const liveResult = await service.runCalculation(input);
-
-        liveGrandTotal += liveResult.total_cost;
-
-        liveResult.intermediate_results.forEach(r => {
-          allIntermediate.push({
-            label: r.output_label || r.output_key,
-            value: r.value,
-            unit: r.unit_symbol
-          });
-        });
-
-        liveResult.material_lines.forEach(m => {
-          allMaterials.push(m);
-        });
-      } catch (err) {
-        console.error(`Erreur de recalcul pour la feuille ${pd.project_details_id}:`, err.message);
+        // 4. Build full export payload from saved project details
+    const parseJsonSafely = (value) => {
+      if (value == null) return {};
+      if (typeof value === 'string') {
+        try { return JSON.parse(value); } catch { return { raw: value }; }
       }
+      if (typeof value === 'object') return value;
+      return { value };
+    };
+
+    const normalizedDetails = details.map((leaf) => ({
+      ...leaf,
+      field_values: parseJsonSafely(leaf.field_values),
+      results: parseJsonSafely(leaf.results),
+      material_lines: Array.isArray(leaf.material_lines) ? leaf.material_lines : [],
+    }));
+
+    const formulaIds = [...new Set(
+      normalizedDetails
+        .map((leaf) => leaf.selected_formula_id)
+        .filter(Boolean),
+    )];
+
+    const fieldMetaRows = formulaIds.length > 0
+      ? await sql`
+          SELECT
+            fd.formula_id,
+            fd.field_id,
+            fd.variable_name,
+            fd.label_en,
+            fd.sort_order,
+            u.symbol AS unit_symbol
+          FROM field_definitions fd
+          LEFT JOIN units u ON u.unit_id = fd.unit_id
+          WHERE fd.formula_id = ANY(${formulaIds})
+          ORDER BY fd.formula_id, fd.sort_order, fd.created_at
+        `
+      : [];
+
+    const fieldMetaByFormula = new Map();
+    for (const row of fieldMetaRows) {
+      const formulaId = row.formula_id;
+      if (!fieldMetaByFormula.has(formulaId)) {
+        fieldMetaByFormula.set(formulaId, { byId: new Map(), byVar: new Map() });
+      }
+      const bucket = fieldMetaByFormula.get(formulaId);
+      bucket.byId.set(row.field_id, row);
+      if (row.variable_name) bucket.byVar.set(row.variable_name, row);
     }
+
+    const normalizedWithDisplay = normalizedDetails.map((leaf) => {
+      const meta = fieldMetaByFormula.get(leaf.selected_formula_id) || { byId: new Map(), byVar: new Map() };
+      const inputEntries = Object.entries(leaf.field_values || {}).map(([key, value]) => {
+        const def = meta.byId.get(key) || meta.byVar.get(key);
+        return {
+          key,
+          name: def?.label_en || def?.variable_name || key,
+          value,
+          unit: def?.unit_symbol || null,
+          sort_order: def?.sort_order ?? Number.MAX_SAFE_INTEGER,
+        };
+      });
+
+      inputEntries.sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+        return a.name.localeCompare(b.name);
+      });
+
+      const resultEntries = Object.entries(leaf.results || {}).map(([key, value]) => ({
+        key,
+        name: key.replace(/_/g, ' '),
+        value,
+      }));
+
+      return {
+        ...leaf,
+        input_values_display: inputEntries,
+        result_values_display: resultEntries,
+      };
+    });
+
+    const totalFromLeaves = normalizedWithDisplay.reduce(
+      (sum, leaf) => sum + Number(leaf.leaf_total || 0),
+      0,
+    );
 
     const pdfData = {
       projectName: resolvedProjectName,
-      categoryName: details.length === 1 ? details[0].category_name : 'Projet Global',
+      projectDescription: project?.description || null,
+      projectStatus: project?.status || null,
+      projectCreatedAt: project?.created_at || null,
+      estimationId: estimation?.estimation_id || null,
       date: new Date(estimation?.created_at || Date.now()).toLocaleDateString(),
-      dimensions: details.length > 0 ? (typeof details[0].values === 'string' ? JSON.parse(details[0].values) : (details[0].values || {})) : {},
-      intermediateResults: allIntermediate,
-      material_lines: allMaterials,
-      total_cost: liveGrandTotal
+      leaf_calculations: normalizedWithDisplay,
+      total_cost: Number(estimation?.total_budget ?? totalFromLeaves ?? 0),
+      // Keep legacy fields for backward compatibility with existing template sections
+      categoryName: normalizedWithDisplay.length === 1
+        ? (normalizedWithDisplay[0].category_name_en || normalizedWithDisplay[0].category_name_ar || 'Category')
+        : 'Global Project',
+      dimensions: normalizedWithDisplay[0]?.field_values || {},
+      intermediateResults: [],
+      material_lines: normalizedWithDisplay.flatMap((leaf) => leaf.material_lines || []),
     };
 
     console.log("Données envoyées au PDF:", JSON.stringify(pdfData, null, 2));
 
     const pdfBuffer = await generatePDF(pdfData);
 
-    // Recherche de l'email : Priorité au Body, puis projet, puis Test Mode
-    let destinationEmail = req.body?.email || project?.user_email || 'Kiaidaboubaker@gmail.com';
+    // Optional email sending: only when explicitly requested by client.
+    // Default export behavior is direct PDF download.
+    const destinationEmail =
+      (typeof req.query?.email === 'string' && req.query.email.trim()) ||
+      (typeof req.body?.email === 'string' && req.body.email.trim()) ||
+      null;
 
     if (destinationEmail) {
-      console.log(`[EMAIL] 🚀 Tentative d'envoi du rapport PDF à : ${destinationEmail}... Taille du Buffer: ${pdfBuffer ? pdfBuffer.length : 'VIDE'} octets`);
-
+      console.log(`[EMAIL] Sending report to: ${destinationEmail}`);
       try {
         if (!pdfBuffer || pdfBuffer.length === 0) {
-          throw new Error("Le fichier PDF est vide ou n'a pas pu être généré (Buffer inexistant).");
+          throw new Error("PDF buffer is empty and cannot be emailed.");
         }
         await sendEmail(destinationEmail, pdfData, pdfBuffer);
-        console.log(`[EMAIL] ✅ Email envoyé avec succès à : ${destinationEmail}`);
-        return ok(res, { success: true, message: 'Email envoyé avec succès' });
+        console.log(`[EMAIL] Sent successfully to: ${destinationEmail}`);
       } catch (error) {
-        console.error('❌ Erreur Email:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        // Don't fail export download when SMTP config is missing/broken.
+        console.error('[EMAIL] Send failed, continuing with direct download:', error.message);
       }
-    } else {
-      console.log(`[EMAIL] ⚠️ Aucune adresse email trouvée pour l'envoi, téléchargement direct du PDF.`);
     }
 
     const safeFilename = resolvedProjectName.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -306,3 +363,5 @@ export async function exportProjectReport(req, res) {
     handleError(res, err);
   }
 }
+
+

@@ -21,7 +21,7 @@ function buildTree(rows) {
   return roots;
 }
 
-// ── Units (shared lookup) ─────────────────────────────────────────────────────
+// ── Units ─────────────────────────────────────────────────────────────────────
 
 export async function getUnits() {
   return sql`SELECT unit_id, name_en, name_ar, symbol FROM units ORDER BY symbol`;
@@ -32,8 +32,7 @@ export async function getUnits() {
 export async function getAdminTree() {
   const rows = await sql`
     SELECT category_id, parent_id, category_level,
-           name_en, name_ar, description_en, description_ar,
-           icon, is_active, sort_order
+           name_en, name_ar, icon, is_active, sort_order
     FROM   categories
     ORDER  BY sort_order, name_en
   `;
@@ -41,12 +40,13 @@ export async function getAdminTree() {
 }
 
 // ── Leaf details ──────────────────────────────────────────────────────────────
-// FIX: use correlated subqueries for fields[] and outputs[] to avoid the
-// cross-product corruption that occurs when joining both tables in the same
-// outer query with GROUP BY + json_agg.
+// Returns:
+//   formulas         – NON_MATERIAL formulas (each with fields[] and outputs[])
+//   material_formulas – MATERIAL formulas (expression only, no fields/outputs)
+//   configs, coefficients
 
 export async function getLeafDetails(category_id) {
-  const [[category], formulas, configs, coefficients] = await Promise.all([
+  const [[category], formulas, materialFormulas, configs, coefficients] = await Promise.all([
 
     sql`
       SELECT category_id, parent_id, category_level, name_en, name_ar,
@@ -55,13 +55,12 @@ export async function getLeafDetails(category_id) {
       WHERE  category_id = ${category_id}
     `,
 
-    // Each formula gets its own fields[] and outputs[] via correlated subqueries.
-    // This avoids the field × output cross-product that would corrupt both
-    // json_agg results if we joined both tables in the same query.
+    // NON_MATERIAL formulas — include name_en, name_ar; output_label_en, output_label_ar
     sql`
       SELECT
         f.formula_id,
-        f.name,
+        f.name_en,
+        f.name_ar,
         f.expression,
         f.formula_type,
         f.version,
@@ -92,16 +91,17 @@ export async function getLeafDetails(category_id) {
           WHERE  fd.formula_id = f.formula_id
         ) AS fields,
 
-        -- outputs correlated subquery
+        -- outputs correlated subquery — uses output_label_en, output_label_ar
         (
           SELECT COALESCE(
             json_agg(
               json_build_object(
-                'output_id',     fo.output_id,
-                'output_key',    fo.output_key,
-                'output_label',  fo.output_label,
+                'output_id',      fo.output_id,
+                'output_key',     fo.output_key,
+                'output_label_en', fo.output_label_en,
+                'output_label_ar', fo.output_label_ar,
                 'output_unit_id', fo.output_unit_id,
-                'unit_symbol',   ou.symbol
+                'unit_symbol',    ou.symbol
               ) ORDER BY fo.output_id
             ) FILTER (WHERE fo.output_id IS NOT NULL),
             '[]'::json
@@ -115,7 +115,25 @@ export async function getLeafDetails(category_id) {
       JOIN   units u ON u.unit_id = f.output_unit
       WHERE  f.category_id  = ${category_id}
         AND  f.formula_type = 'NON_MATERIAL'
-      ORDER  BY f.name
+      ORDER  BY f.name_en
+    `,
+
+    // MATERIAL formulas — expression-only, linked to resource_catalog rows
+    sql`
+      SELECT
+        f.formula_id,
+        f.name_en,
+        f.name_ar,
+        f.expression,
+        f.formula_type,
+        f.version,
+        f.output_unit          AS output_unit_id,
+        u.symbol               AS output_unit_symbol
+      FROM   formulas f
+      LEFT JOIN units u ON u.unit_id = f.output_unit
+      WHERE  f.category_id  = ${category_id}
+        AND  f.formula_type = 'MATERIAL'
+      ORDER  BY f.name_en
     `,
 
     sql`
@@ -136,7 +154,7 @@ export async function getLeafDetails(category_id) {
   ]);
 
   if (!category) return null;
-  return { ...category, formulas, configs, coefficients };
+  return { ...category, formulas, material_formulas: materialFormulas, configs, coefficients };
 }
 
 // ── Category CRUD ─────────────────────────────────────────────────────────────
@@ -153,8 +171,7 @@ export async function createCategory(dto) {
        ${dto.icon ?? '📂'}, ${dto.parent_id ?? null},
        ${dto.category_level}, ${dto.sort_order ?? 0}, ${slug})
     RETURNING category_id, parent_id, category_level,
-              name_en, name_ar, description_en, description_ar,
-              icon, is_active, sort_order
+              name_en, name_ar, icon, is_active, sort_order
   `;
   return { ...row, children: [] };
 }
@@ -169,16 +186,13 @@ export async function updateCategory(category_id, dto) {
   if ('is_active'      in dto) updates.is_active      = dto.is_active;
   if ('sort_order'     in dto) updates.sort_order     = dto.sort_order;
   if ('category_level' in dto) updates.category_level = dto.category_level;
-
   if (!Object.keys(updates).length) return null;
 
   const [row] = await sql`
-    UPDATE categories
-    SET    ${sql(updates)}, updated_at = NOW()
+    UPDATE categories SET ${sql(updates)}, updated_at = NOW()
     WHERE  category_id = ${category_id}
     RETURNING category_id, parent_id, category_level,
-              name_en, name_ar, description_en, description_ar,
-              icon, is_active, sort_order
+              name_en, name_ar, icon, is_active, sort_order
   `;
   return row;
 }
@@ -192,16 +206,28 @@ export async function deleteCategory(category_id) {
 }
 
 // ── Formula CRUD ──────────────────────────────────────────────────────────────
+// Uses name_en / name_ar (DB columns).  formula_type can be NON_MATERIAL or MATERIAL.
 
 export async function createFormula(category_id, dto) {
+  const formulaType = dto.formula_type ?? 'NON_MATERIAL';
   const [row] = await sql`
-    INSERT INTO formulas (category_id, name, expression, output_unit, formula_type, version)
-    VALUES (${category_id}, ${dto.name}, ${dto.expression}, ${dto.output_unit_id}, 'NON_MATERIAL', 1)
-    RETURNING formula_id, name, expression, formula_type, version,
+    INSERT INTO formulas (category_id, name_en, name_ar, expression, output_unit, formula_type, version)
+    VALUES (${category_id}, ${dto.name_en}, ${dto.name_ar ?? ''},
+            ${dto.expression}, ${dto.output_unit_id ?? null}::uuid,
+            ${formulaType}, 1)
+    RETURNING formula_id, name_en, name_ar, expression, formula_type, version,
               output_unit AS output_unit_id
   `;
-  const [unit] = await sql`SELECT symbol FROM units WHERE unit_id = ${dto.output_unit_id}`;
-  return { ...row, output_unit_symbol: unit?.symbol ?? '', fields: [], outputs: [] };
+  const [unit] = dto.output_unit_id
+    ? await sql`SELECT symbol FROM units WHERE unit_id = ${dto.output_unit_id}`
+    : [null];
+
+  return {
+    ...row,
+    output_unit_symbol: unit?.symbol ?? '',
+    fields:  [],
+    outputs: [],
+  };
 }
 
 export async function updateFormula(formula_id, dto) {
@@ -209,12 +235,13 @@ export async function updateFormula(formula_id, dto) {
   const [row] = await sql`
     UPDATE formulas
     SET
-      name        = COALESCE(${dto.name           ?? null}, name),
-      expression  = COALESCE(${dto.expression     ?? null}, expression),
+      name_en     = COALESCE(${dto.name_en       ?? null}, name_en),
+      name_ar     = COALESCE(${dto.name_ar       ?? null}, name_ar),
+      expression  = COALESCE(${dto.expression    ?? null}, expression),
       output_unit = COALESCE(${dto.output_unit_id ?? null}::uuid, output_unit),
       version     = version + ${bumpVersion ? 1 : 0}
     WHERE formula_id = ${formula_id}
-    RETURNING formula_id, name, expression, formula_type, version,
+    RETURNING formula_id, name_en, name_ar, expression, formula_type, version,
               output_unit AS output_unit_id
   `;
   return row;
@@ -228,17 +255,17 @@ export async function deleteFormula(formula_id) {
 }
 
 // ── Formula Output CRUD ───────────────────────────────────────────────────────
-// formula_output rows define the named keys the engine registers in the
-// variable context after evaluating this formula.  e.g. output_key = "volume_beton"
-// is what MATERIAL formula expressions then reference.
+// DB columns: output_label_en (required), output_label_ar (optional)
 
 export async function createFormulaOutput(formula_id, dto) {
   const [row] = await sql`
-    INSERT INTO formula_output (formula_id, output_key, output_label, output_unit_id)
-    VALUES (${formula_id}, ${dto.output_key}, ${dto.output_label}, ${dto.output_unit_id ?? null})
-    RETURNING output_id, formula_id, output_key, output_label, output_unit_id
+    INSERT INTO formula_output
+      (formula_id, output_key, output_label_en, output_label_ar, output_unit_id)
+    VALUES
+      (${formula_id}, ${dto.output_key}, ${dto.output_label_en},
+       ${dto.output_label_ar ?? ''}, ${dto.output_unit_id ?? null})
+    RETURNING output_id, formula_id, output_key, output_label_en, output_label_ar, output_unit_id
   `;
-  // Return with unit symbol for the UI
   const [unit] = dto.output_unit_id
     ? await sql`SELECT symbol FROM units WHERE unit_id = ${dto.output_unit_id}`
     : [null];
@@ -247,15 +274,16 @@ export async function createFormulaOutput(formula_id, dto) {
 
 export async function updateFormulaOutput(output_id, dto) {
   const updates = {};
-  if ('output_key'    in dto) updates.output_key    = dto.output_key;
-  if ('output_label'  in dto) updates.output_label  = dto.output_label;
-  if ('output_unit_id' in dto) updates.output_unit_id = dto.output_unit_id;
+  if ('output_key'      in dto) updates.output_key      = dto.output_key;
+  if ('output_label_en' in dto) updates.output_label_en = dto.output_label_en;
+  if ('output_label_ar' in dto) updates.output_label_ar = dto.output_label_ar;
+  if ('output_unit_id'  in dto) updates.output_unit_id  = dto.output_unit_id;
   if (!Object.keys(updates).length) return null;
 
   const [row] = await sql`
     UPDATE formula_output SET ${sql(updates)}
     WHERE  output_id = ${output_id}
-    RETURNING output_id, formula_id, output_key, output_label, output_unit_id
+    RETURNING output_id, formula_id, output_key, output_label_en, output_label_ar, output_unit_id
   `;
   return row;
 }

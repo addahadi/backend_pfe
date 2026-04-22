@@ -67,9 +67,11 @@ export class CalculationEngine {
         rawQty = this.evalExpr(mf.expression, vars, mf);
       } catch (e) {
         skippedMaterials.push({
-          material_id:   mat.material_id,
-          material_name: mat.material_name,
-          reason:        e.message,
+          material_id:     mat.material_id,
+          material_name:   mat.material_name,
+          material_name_en: mat.material_name_en,
+          material_name_ar: mat.material_name_ar,
+          reason:          e.message,
         });
         continue;
       }
@@ -86,6 +88,8 @@ export class CalculationEngine {
       matLines.push({
         material_id:           mat.material_id,
         material_name:         mat.material_name,
+        material_name_en:      mat.material_name_en,
+        material_name_ar:      mat.material_name_ar,
         material_type:         mat.material_type,
         quantity:              this.r4(rawQty),
         unit_symbol:           unit.symbol,

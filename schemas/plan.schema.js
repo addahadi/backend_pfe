@@ -9,7 +9,7 @@ export const createPlanSchema = z.object({
   name_ar: z.string().min(2),
   price: z.number(),
   duration: z.number(),
-  plan_type_id: z.preprocess((val) => (val === '' ? undefined : val), z.string().uuid().optional()),
+  plan_type_id: z.string(),
 });
 
 // -----------------------------
@@ -19,7 +19,7 @@ export const updatePlanSchema = z.object({
   name_en: z.string().min(2).optional(),
   name_ar: z.string().min(2).optional(),
 
-  plan_type_id: z.preprocess((val) => (val === '' ? undefined : val), z.string().uuid().optional()),
+  plan_type_id: z.string(),
 
   price: z.number().min(0).optional(),
 

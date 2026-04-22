@@ -57,14 +57,21 @@ export async function getProjectById(project_id, user_id) {
 export async function createProject(user_id, dto) {
   return sql.begin(async (tx) => {
     const [project] = await tx`
-      INSERT INTO projects (user_id, name, description, status, image_url)
-      VALUES (${user_id ?? null}, ${dto.name}, ${dto.description ?? null}, 'ACTIVE', ${dto.image_url ?? null})
-      RETURNING project_id, name, description, status, created_at, image_url
+      INSERT INTO projects (user_id, name, description, status, image_url, subscription_id)
+      VALUES (
+        ${user_id ?? null},
+        ${dto.name},
+        ${dto.description ?? null},
+        'ACTIVE',
+        ${dto.image_url ?? null},
+        ${dto.subscription_id ?? null}
+      )
+      RETURNING project_id, name, description, status, created_at, image_url, subscription_id
     `;
 
     const [estimation] = await tx`
-      INSERT INTO estimation (project_id, budget_type, total_budget)
-      VALUES (${project.project_id}, ${dto.budget_type}, ${dto.total_budget ?? 0})
+      INSERT INTO estimation (project_id, budget_type, total_budget, subscription_id)
+      VALUES (${project.project_id}, ${dto.budget_type}, ${dto.total_budget ?? 0}, ${dto.subscription_id ?? null})
       RETURNING estimation_id, budget_type, total_budget
     `;
 
@@ -131,7 +138,9 @@ export async function getCategoryWithFormulas(category_id) {
     sql`
       SELECT
         f.formula_id,
-        f.name,
+        COALESCE(f.name_en, f.name_ar, 'Unnamed Formula') AS name,
+        f.name_en,
+        f.name_ar,
         f.expression,
         f.version,
         u.symbol AS output_unit_symbol,
@@ -158,7 +167,7 @@ export async function getCategoryWithFormulas(category_id) {
       WHERE f.category_id  = ${category_id}
         AND f.formula_type = 'NON_MATERIAL'
       GROUP BY f.formula_id, u.symbol
-      ORDER BY f.name
+      ORDER BY COALESCE(f.name_en, f.name_ar, 'Unnamed Formula')
     `,
     sql`
       SELECT config_id, name, description
@@ -186,9 +195,12 @@ export async function getEstimationByProject(project_id) {
     SELECT
       pd.id                    AS project_details_id,
       pd.category_id,
-      c.name_en                AS category_name,
+      c.name_en                AS category_name_en,
+      c.name_ar                AS category_name_ar,
       pd.selected_formula_id,
-      f.name                   AS formula_name,
+      COALESCE(f.name_en, f.name_ar, 'Unnamed Formula') AS formula_name,
+      f.name_en                AS formula_name_en,
+      f.name_ar                AS formula_name_ar,
       pd.selected_config_id,
       mc.name                  AS config_name,
       pd.formula_version_snapshot,
@@ -203,7 +215,7 @@ export async function getEstimationByProject(project_id) {
     LEFT JOIN estimation_detail_material edm
            ON edm.project_details_id = pd.id
     WHERE pd.estimation_id = ${estimation.estimation_id}
-    GROUP BY pd.id, c.name_en, f.name, mc.name
+    GROUP BY pd.id, c.name_en, c.name_ar, f.name_en, f.name_ar, mc.name
     ORDER BY pd.created_at
   `;
 
@@ -214,7 +226,9 @@ export async function getEstimationByProject(project_id) {
           edm.detail_id,
           edm.project_details_id,
           edm.material_id,
-          rc.material_name_en AS material_name,
+          rc.material_name_en AS material_name_en,
+          rc.material_name_ar AS material_name_ar,
+          COALESCE(rc.material_name_en, rc.material_name_ar, 'Unnamed Material') AS material_name,
           rc.material_type,
           u.symbol            AS unit_symbol,
           edm.quantity,
@@ -414,7 +428,10 @@ export async function getExportData(project_id, user_id) {
   let details = [];
   if (estimation) {
     details = await sql`
-      SELECT pd.*, c.name_en AS category_name
+      SELECT
+        pd.*,
+        c.name_en AS category_name_en,
+        c.name_ar AS category_name_ar
       FROM project_details pd
       LEFT JOIN categories c ON c.category_id = pd.category_id
       WHERE pd.estimation_id = ${estimation.estimation_id}
