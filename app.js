@@ -1,13 +1,9 @@
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Full updated app.js for reference:
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
-import errorHandler from './middelwares/error.js';
+import errorHandler from './middlewares/error.js';
+import { langMiddleware } from './middlewares/lang.middleware.js';
 
 // Auth routes
 import authRoutes         from './routes/auth/auth.route.js';
@@ -21,7 +17,7 @@ import serviceRoutes  from './routes/externalService/services.route.js';
 
 import unitsRouter from './routes/units.routes.js'
 // Estimation module
-import estimationRoutes from './modules/estimation/routes.js';
+import estimationRoutes from './routes/calculation/routes.js';
 
 // AI routes
 import chatRoutes from './routes/Ai/chat.route.js';
@@ -36,6 +32,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// ─── Language detection (must come before all routes) ─────────────────────────
+app.use(langMiddleware);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 app.use('/api', authRoutes);

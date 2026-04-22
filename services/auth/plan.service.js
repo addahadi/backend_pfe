@@ -3,14 +3,37 @@ import { NotFoundError } from '../../utils/AppError.js';
 
 // إنشاء Plan
 
-export const createPlan = async ({ name_en, name_ar, price, duration, plan_type_id }) => {
-  const result = await sql`
-    INSERT INTO plans (name_en, name_ar, price, duration, plan_type_id)
-    VALUES (${name_en}, ${name_ar}, ${price}, ${duration}, ${plan_type_id || null})
-    RETURNING plan_id, name_en, name_ar, price, duration, plan_type_id
-  `;
+export const createPlan = async ({ name_en, name_ar, price, duration, plan_type_id, features }) => {
+  return await sql.begin(async (tx) => {
+    const [plan] = await tx`
+      INSERT INTO plans (name_en, name_ar, price, duration, plan_type_id)
+      VALUES (${name_en}, ${name_ar}, ${price}, ${duration}, ${plan_type_id || null})
+      RETURNING plan_id, name_en, name_ar, price, duration, plan_type_id
+    `;
 
-  return result[0];
+    if (Array.isArray(features) && features.length > 0) {
+      for (const feature of features) {
+        await tx`
+          INSERT INTO features (
+            feature_id,
+            plan_id,
+            feature_key,
+            feature_value_en,
+            feature_value_ar
+          )
+          VALUES (
+            gen_random_uuid(),
+            ${plan.plan_id},
+            ${feature.key},
+            ${feature.value},
+            ${feature.value}
+          )
+        `;
+      }
+    }
+
+    return plan;
+  });
 };
 
 //2. Get Plans with Features (🔥🔥 IMPORTANT FOR UI)
@@ -65,7 +88,7 @@ export const updatePlan = async (planId, data) => {
     `;
 
     if (!plan.length) {
-      throw new NotFoundError('Plan not found');
+      throw new NotFoundError('Plan not found', 'الخطة غير موجودة');
     }
 
     // 2️⃣ update plan
@@ -121,7 +144,7 @@ export const getPlanFeatures = async (planId) => {
 
   // 2️⃣ إذا ماكان حتى feature
   if (features.length === 0) {
-    throw new NotFoundError('No features found for this plan');
+    throw new NotFoundError('No features found for this plan', 'لا توجد ميزات لهذه الخطة');
   }
 
   // 3️⃣ تحويلها إلى object
@@ -139,8 +162,8 @@ export const deletePlan = async (planId) => {
   return await sql.begin(async (tx) => {
     await tx`DELETE FROM features WHERE plan_id = ${planId}`;
     const result = await tx`DELETE FROM plans WHERE plan_id = ${planId} RETURNING plan_id`;
-    if (!result.length) throw new NotFoundError('Plan not found');
-    return { message: 'Plan deleted successfully' };
+    if (!result.length) throw new NotFoundError('Plan not found', 'الخطة غير موجودة');
+    return { message_en: 'Plan deleted successfully', message_ar: 'تم حذف الخطة بنجاح' };
   });
 };
 
@@ -168,12 +191,12 @@ export const updatePlanType = async (id, { name_en, name_ar }) => {
     WHERE plan_type_id = ${id}
     RETURNING plan_type_id as id, name_en, name_ar
   `;
-  if (!result.length) throw new NotFoundError('Plan type not found');
+  if (!result.length) throw new NotFoundError('Plan type not found', 'نوع الخطة غير موجود');
   return result[0];
 };
 
 export const deletePlanType = async (id) => {
   const result = await sql`DELETE FROM plan_types WHERE plan_type_id = ${id} RETURNING plan_type_id`;
-  if (!result.length) throw new NotFoundError('Plan type not found');
-  return { message: 'Plan type deleted successfully' };
+  if (!result.length) throw new NotFoundError('Plan type not found', 'نوع الخطة غير موجود');
+  return { message_en: 'Plan type deleted successfully', message_ar: 'تم حذف نوع الخطة بنجاح' };
 };

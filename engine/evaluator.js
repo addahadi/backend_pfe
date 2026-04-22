@@ -9,12 +9,12 @@
  * whitelisted operations can execute regardless of what is stored in the DB.
  *
  * Supported syntax:
- *   Literals:       42, 3.14
- *   Variables:      L, W, D, S, h, volume_beton, ...
- *   Operators:      + - * / ^ (power)
- *   Grouping:       ( )
- *   Functions:      ceil(x), floor(x), round(x), sqrt(x), abs(x), min(a,b), max(a,b), pi()
- *   Constants:      PI, E
+ * Literals:       42, 3.14
+ * Variables:      L, W, D, S, h, volume_beton, foundation.volume, ...
+ * Operators:      + - * / ^ (power)
+ * Grouping:       ( )
+ * Functions:      ceil(x), floor(x), round(x), sqrt(x), abs(x), min(a,b), max(a,b), pi()
+ * Constants:      PI, E
  */
 
 export class FormulaEvaluator {
@@ -122,7 +122,8 @@ export class FormulaEvaluator {
 
   parseIdentifier() {
     let name = '';
-    while (this.pos < this.expr.length && /[a-zA-Z0-9_]/.test(this.expr[this.pos])) {
+    // UPDATED: Added dot (.) to the regex to support namespaced variables
+    while (this.pos < this.expr.length && /[a-zA-Z0-9_.]/.test(this.expr[this.pos])) {
       name += this.expr[this.pos++];
     }
     this.skipWs();

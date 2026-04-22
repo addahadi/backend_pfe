@@ -1,10 +1,10 @@
 import express from 'express';
 import { create, getMine, getMyUsage, getAll } from '../../controllers/auth/subscription.controller.js';
 import { requestSwitchPlan, confirmSwitchPlan } from '../../controllers/auth/switch.js';
-import authenticate from '../../middelwares/authenticate.js';
-import { requireRole } from '../../middelwares/reaquireRole.js';
-import checkSubscription from '../../middelwares/checkSubscription.js';
-import { validate } from '../../middelwares/validate.js';
+import authenticate from '../../middlewares/authenticate.js';
+import { requireRole } from '../../middlewares/requireRole.js';
+import checkSubscription from '../../middlewares/checkSubscription.js';
+import { validate } from '../../middlewares/validate.js';
 import { createSubscriptionSchema } from '../../schemas/subscription.schema.js';
 
 const router = express.Router();

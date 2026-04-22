@@ -5,13 +5,13 @@ Defines API endpoints for authentication.
 */
 
 import express from 'express';
-import verifyToken from '../../middelwares/verfytToken.js';
-import { authRateLimit } from '../../middelwares/authRateLimit.js';
+import verifyToken from '../../middlewares/verifyToken.js';
+import { authRateLimit } from '../../middlewares/authRateLimit.js';
 
 import { forgotPasswordSchema, resetPasswordSchema } from '../../schemas/auth.schema.js';
 import { forgotPassword, verifyResetToken, resetPassword, getMe } from '../../controllers/auth/auth.controller.js';
 import { login, register, verify, logout, refresh } from '../../controllers/auth/auth.controller.js';
-import { validate } from '../../middelwares/validate.js';
+import { validate } from '../../middlewares/validate.js';
 import { loginShema, registerSchema, refreshSchema } from '../../schemas/auth.schema.js';
 
 // 10 attempts per minute per IP on sensitive auth endpoints

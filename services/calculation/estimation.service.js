@@ -1,6 +1,6 @@
 import sql from '../../config/database.js';
-import { CalculationEngine } from '../engine/engine.js';
-import { PostgresEngineRepository } from './repository.js';
+import { CalculationEngine } from '../../engine/engine.js';
+import { PostgresEngineRepository } from '../../engine/repository.js';
 
 const repo = new PostgresEngineRepository();
 const engine = new CalculationEngine(repo);
@@ -101,7 +101,8 @@ export async function getChildCategories(parent_id) {
 
 export async function getCategoryTree() {
   const categories = await sql`
-    SELECT category_id, parent_id, category_level, name_en, name_ar, icon, sort_order
+    SELECT category_id, parent_id, category_level, name_en, name_ar, 
+           description_en, description_ar, icon, sort_order
     FROM categories
     WHERE is_active = true
     ORDER BY sort_order, name_en

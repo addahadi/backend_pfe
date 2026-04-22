@@ -47,7 +47,7 @@ export const register = async ({ name, email, password }) => {
   const users = await sql`SELECT id FROM users WHERE email = ${email}`;
 
   if (users.length > 0) {
-    throw new ConflictError('Email already exists');
+    throw new ConflictError('Email already exists', 'البريد الإلكتروني مسجل بالفعل');
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -109,14 +109,14 @@ export const login = async ({ email, password }) => {
   const users = await sql`SELECT * FROM users WHERE email = ${email}`;
 
   if (!users.length) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError('User not found', 'المستخدم غير موجود');
   }
 
   const user = users[0];
 
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) {
-    throw new AuthError('Invalid credentials');
+    throw new AuthError('Invalid credentials', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
   }
 
   // Rotate: one session at a time
@@ -181,10 +181,10 @@ export const refresh = async (refreshToken) => {
       if (isMatch) { validToken = t; break; }
     }
 
-    if (!validToken) throw new AuthError('Invalid refresh token');
+    if (!validToken) throw new AuthError('Invalid refresh token', 'رمز التحديث غير صالح');
 
     if (new Date(validToken.expires_at) < new Date()) {
-      throw new AuthError('Refresh token expired');
+      throw new AuthError('Refresh token expired', 'انتهت صلاحية رمز التحديث');
     }
 
     const accessToken = jwt.sign(
@@ -196,7 +196,7 @@ export const refresh = async (refreshToken) => {
     return { accessToken };
   } catch (error) {
     if (error instanceof AuthError) throw error;
-    throw new AuthError('Invalid or expired refresh token');
+    throw new AuthError('Invalid or expired refresh token', 'رمز التحديث غير صالح أو منتهي الصلاحية');
   }
 };
 
@@ -214,11 +214,11 @@ export const logout = async (refreshToken) => {
     if (isMatch) { tokenId = t.id; break; }
   }
 
-  if (!tokenId) throw new NotFoundError('Token not found');
+  if (!tokenId) throw new NotFoundError('Token not found', 'الرمز غير موجود');
 
   await sql`DELETE FROM refresh_tokens WHERE id = ${tokenId}`;
 
-  return { message: 'Logged out successfully' };
+  return { message_en: 'Logged out successfully', message_ar: 'تم تسجيل الخروج بنجاح' };
 };
 
 /*
@@ -228,7 +228,7 @@ FORGOT PASSWORD
 */
 export const forgotPassword = async ({ email }) => {
   const users = await sql`SELECT id FROM users WHERE email = ${email}`;
-  if (!users.length) return { message: 'If email exists, a link was sent' };
+  if (!users.length) return { message_en: 'If email exists, a link was sent', message_ar: 'إذا كان البريد الإلكتروني موجوداً، تم إرسال رابط' };
 
   const userId = users[0].id;
 
@@ -249,7 +249,7 @@ export const forgotPassword = async ({ email }) => {
     console.warn('[forgot-password] Email send failed:', emailErr.message);
   }
 
-  return { message: 'If email exists, a link was sent' };
+  return { message_en: 'If email exists, a link was sent', message_ar: 'إذا كان البريد الإلكتروني موجوداً، تم إرسال رابط' };
 };
 
 /*
@@ -265,9 +265,9 @@ export const verifyResetToken = async ({ token }) => {
     WHERE token = ${hashedToken} AND expires_at > NOW()
   `;
 
-  if (!rows.length) throw new AuthError('Reset token is invalid or has expired');
+  if (!rows.length) throw new AuthError('Reset token is invalid or has expired', 'رمز إعادة التعيين غير صالح أو منتهي الصلاحية');
 
-  return { message: 'Token valid' };
+  return { message_en: 'Token valid', message_ar: 'الرمز صالح' };
 };
 
 /*
@@ -283,7 +283,7 @@ export const resetPassword = async ({ token, newPassword }) => {
     WHERE token = ${hashedToken} AND expires_at > NOW()
   `;
 
-  if (!rows.length) throw new AuthError('Reset token is invalid or has expired');
+  if (!rows.length) throw new AuthError('Reset token is invalid or has expired', 'رمز إعادة التعيين غير صالح أو منتهي الصلاحية');
 
   const userId = rows[0].user_id;
 
@@ -293,7 +293,7 @@ export const resetPassword = async ({ token, newPassword }) => {
   await sql`DELETE FROM password_reset_tokens WHERE user_id = ${userId}`;
   await sql`DELETE FROM refresh_tokens WHERE user_id = ${userId}`;
 
-  return { message: 'Password reset successful' };
+  return { message_en: 'Password reset successful', message_ar: 'تم إعادة تعيين كلمة المرور بنجاح' };
 };
 
 /*
@@ -336,7 +336,7 @@ export const getMe = async (userId) => {
     WHERE id = ${userId}
   `;
 
-  if (!rows.length) throw new NotFoundError('User not found');
+  if (!rows.length) throw new NotFoundError('User not found', 'المستخدم غير موجود');
 
   return rows[0];
 };

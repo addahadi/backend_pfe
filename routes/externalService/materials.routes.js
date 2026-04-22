@@ -1,7 +1,7 @@
 import express from 'express';
 import { getAllMaterials, getMaterialFormulas, addMaterial, updateMaterial, deleteMaterial } from '../../controllers/externalService/material.controller.js';
-import authenticate from '../../middelwares/authenticate.js';
-import { requireRole } from '../../middelwares/reaquireRole.js';
+import authenticate from '../../middlewares/authenticate.js';
+import { requireRole } from '../../middlewares/requireRole.js';
 
 const router = express.Router();
 

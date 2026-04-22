@@ -1,4 +1,4 @@
-import { ok, handleError, notFound } from './http.js';
+import { ok, handleError, notFound } from '../../utils/http.js';
 import sql from '../../config/database.js';
 import {
   CalculationInputSchema,
@@ -6,8 +6,8 @@ import {
   SaveLeafResultSchema,
   RemoveLeafSchema,
   UUIDParamSchema,
-} from './schemas.js';
-import * as service from './estimation.service.js';
+} from '../../schemas/schemas.js';
+import * as service from '../../services/calculation/estimation.service.js';
 import { generatePDF } from '../../services/externalService/pdf.service.js';
 import { sendEmail } from '../../services/externalService/email.service.js';
 import { getExchangeSettings } from '../../services/externalService/exchange.service.js';

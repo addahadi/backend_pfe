@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import authenticate from '../middelwares/authenticate.js';
-import { requireRole } from '../middelwares/reaquireRole.js';
-import { validate } from '../middelwares/validate.js';
+import authenticate from '../middlewares/authenticate.js';
+import { requireRole } from '../middlewares/requireRole.js';
+import { validate } from '../middlewares/validate.js';
 import {
   adminUserIdParamSchema,
   updateAdminUserStatusSchema,

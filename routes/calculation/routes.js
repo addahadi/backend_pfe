@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import * as ctrl from './estimation.controller.js';
-import authenticate from '../../middelwares/authenticate.js';
-import checkSubscription from '../../middelwares/checkSubscription.js';
-import checkUsage from '../../middelwares/checkUsage.js';
-import { validate } from '../../middelwares/validate.js';
-import { rateLimit } from '../../middelwares/rateLimi.js';
+import * as ctrl from '../../controllers/calculation/estimation.controller.js';
+import authenticate from '../../middlewares/authenticate.js';
+import checkSubscription from '../../middlewares/checkSubscription.js';
+import checkUsage from '../../middlewares/checkUsage.js';
+import { validate } from '../../middlewares/validate.js';
+import { rateLimit } from '../../middlewares/rateLimit.js';
 import multer from 'multer';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -14,7 +14,7 @@ import {
   SaveLeafResultSchema,
   RemoveLeafSchema,
   UUIDParamSchema,
-} from './schemas.js';
+} from '../../schemas/schemas.js';
 
 const router = Router();
 

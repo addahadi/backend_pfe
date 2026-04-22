@@ -1,4 +1,4 @@
-import sql from '../../config/database.js';
+import sql from '../config/database.js';
 
 export class PostgresEngineRepository {
 

@@ -3,6 +3,22 @@ import { AppError } from './AppError.js';
 import { z } from 'zod';
 const ZodError = z.ZodError;
 
+// ─── Language helper ──────────────────────────────────────────────────────────
+
+/**
+ * Pick the correct message string based on `res.locals.lang`.
+ * Falls back to English when Arabic text is unavailable.
+ *
+ * @param {import('express').Response} res
+ * @param {string} message_en
+ * @param {string} [message_ar]
+ * @returns {string}
+ */
+function pickMessage(res, message_en, message_ar) {
+  if (res.locals?.lang === 'ar' && message_ar) return message_ar;
+  return message_en;
+}
+
 // ─── Success ──────────────────────────────────────────────────────────────────
 
 /**
@@ -20,12 +36,13 @@ export function ok(res, data, status = 200) {
 /**
  * Send a structured 404 response.
  * @param {import('express').Response} res
- * @param {string} message
+ * @param {string} message_en
+ * @param {string} [message_ar]
  */
-export function notFound(res, message) {
+export function notFound(res, message_en, message_ar) {
   res.status(404).json({
     success: false,
-    error: { code: 'NOT_FOUND', message },
+    error: { code: 'NOT_FOUND', message: pickMessage(res, message_en, message_ar) },
   });
 }
 
@@ -33,6 +50,7 @@ export function notFound(res, message) {
 
 /**
  * Map any thrown error to a structured JSON response.
+ * Respects `res.locals.lang` ('en' | 'ar') to localise the message.
  *
  * Codes:
  *   VALIDATION_ERROR  400  – Zod or ValidationError
@@ -47,13 +65,15 @@ export function notFound(res, message) {
  * @param {unknown} err
  */
 export function handleError(res, err) {
+  const lang = res.locals?.lang || 'en';
+
   if (err instanceof ZodError || err.name === 'ZodError') {
     const issues = err.issues || err.errors || [];
     return res.status(400).json({
       success: false,
       error: {
         code:    'VALIDATION_ERROR',
-        message: 'Invalid request data',
+        message: lang === 'ar' ? 'بيانات الطلب غير صحيحة' : 'Invalid request data',
         details: issues.map(e => ({
           field:   e.path ? e.path.join('.') : 'unknown',
           message: e.message,
@@ -64,14 +84,16 @@ export function handleError(res, err) {
 
   // ── Known application error ───────────────────────────────────────────────
   if (err instanceof AppError) {
+    // Pick localised message: AppError now carries message_en + message_ar
+    const message = lang === 'ar'
+      ? (err.message_ar || err.message)
+      : (err.message_en || err.message);
+
     const body = {
       success: false,
-      error: {
-        code:    err.code,
-        message: err.message,
-      },
+      error: { code: err.code, message },
     };
-    // Attach details if present (e.g. ValidationError)
+    // Attach field-level details if present (e.g. ValidationError)
     if (err.details?.length) body.error.details = err.details;
     return res.status(err.statusCode).json(body);
   }
@@ -82,7 +104,7 @@ export function handleError(res, err) {
     success: false,
     error: {
       code:    'INTERNAL_ERROR',
-      message: err.message,
+      message: lang === 'ar' ? 'حدث خطأ غير متوقع في الخادم' : 'An unexpected server error occurred',
       stack: err.stack,
     },
   });

@@ -85,6 +85,9 @@ function buildUsersWhereClause({ status, search, plan }) {
 }
 
 export async function getDashboardStats() {
+  const start = Date.now();
+  console.log('[DEBUG] Running stats queries in parallel...');
+  
   const [
     usersResult,
     activeSubsResult,
@@ -97,24 +100,24 @@ export async function getDashboardStats() {
     recentActivityResult,
     aiBreakdownResult,
   ] = await Promise.all([
-    sql`SELECT COUNT(*)::int AS count FROM users`,
-    sql`SELECT COUNT(*)::int AS count FROM subscriptions WHERE status = 'ACTIVE'`,
+    sql`SELECT COUNT(*)::int AS count FROM users`.then(r => { console.log('[DEBUG] usersResult done'); return r; }),
+    sql`SELECT COUNT(*)::int AS count FROM subscriptions WHERE status = 'ACTIVE'`.then(r => { console.log('[DEBUG] activeSubsResult done'); return r; }),
     sql`
       SELECT COALESCE(SUM(p.price), 0)::float AS total
       FROM subscriptions s
       JOIN plans p ON p.plan_id = s.plan_id
       WHERE s.status = 'ACTIVE'
         AND date_trunc('month', s.created_at) = date_trunc('month', NOW())
-    `,
-    sql`SELECT COUNT(*)::int AS count FROM projects`,
-    sql`SELECT COUNT(*)::int AS count FROM ai_usage_history`,
+    `.then(r => { console.log('[DEBUG] revenueResult done'); return r; }),
+    sql`SELECT COUNT(*)::int AS count FROM projects`.then(r => { console.log('[DEBUG] projectsResult done'); return r; }),
+    sql`SELECT COUNT(*)::int AS count FROM ai_usage_history`.then(r => { console.log('[DEBUG] aiResult done'); return r; }),
     sql`
       SELECT p.name_en AS plan_name, COUNT(s.subscription_id)::int AS count
       FROM plans p
       LEFT JOIN subscriptions s ON s.plan_id = p.plan_id AND s.status = 'ACTIVE'
       GROUP BY p.plan_id, p.name_en
       ORDER BY count DESC
-    `,
+    `.then(r => { console.log('[DEBUG] planBreakdownResult done'); return r; }),
     sql`
       SELECT
         TO_CHAR(gs.day, 'DD') AS d,
@@ -127,7 +130,7 @@ export async function getDashboardStats() {
       LEFT JOIN users u ON DATE(u.created_at) = gs.day
       GROUP BY gs.day
       ORDER BY gs.day
-    `,
+    `.then(r => { console.log('[DEBUG] newUsersResult done'); return r; }),
     sql`
       SELECT
         TO_CHAR(gs.month, 'Mon') AS m,
@@ -143,7 +146,7 @@ export async function getDashboardStats() {
       LEFT JOIN plans p ON p.plan_id = s.plan_id
       GROUP BY gs.month
       ORDER BY gs.month
-    `,
+    `.then(r => { console.log('[DEBUG] monthlyRevenueResult done'); return r; }),
     sql`
       SELECT 'project' AS type, p.name AS entity, u.name AS actor, p.created_at AS ts
       FROM projects p
@@ -159,13 +162,15 @@ export async function getDashboardStats() {
       FROM users u
       ORDER BY ts DESC
       LIMIT 8
-    `,
+    `.then(r => { console.log('[DEBUG] recentActivityResult done'); return r; }),
     sql`
       SELECT usage_type::text AS type, COUNT(*)::int AS count
       FROM ai_usage_history
       GROUP BY usage_type
-    `,
+    `.then(r => { console.log('[DEBUG] aiBreakdownResult done'); return r; }),
   ]);
+
+  console.log(`[DEBUG] Dashboard stats finished in ${Date.now() - start}ms`);
 
   return {
     kpis: {

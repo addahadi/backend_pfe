@@ -29,7 +29,8 @@ export class CalculationEngine {
     const intermediateResults = await this.evaluateFormula(selectedFormula, outputs, vars);
 
     for (const r of intermediateResults) {
-      vars[r.output_key] = r.value;
+      vars[r.output_key]     = r.value; // Legacy flat key
+      vars[r.namespaced_key] = r.value; // Isolated namespaced key
     }
 
     // ── 5. Resolve chained fields (source_formula_id) ─────────────────────
@@ -40,9 +41,10 @@ export class CalculationEngine {
         const srcOuts = await this.repo.getFormulaOutputs(field.source_formula_id);
         const res     = await this.evaluateFormula(src, srcOuts, vars);
         for (const r of res) {
-          vars[r.output_key]   = r.value;
-          vars[symbol]         = r.value;
-          vars[field.field_id] = r.value;
+          vars[r.output_key]     = r.value;
+          vars[r.namespaced_key] = r.value;
+          vars[symbol]           = r.value;
+          vars[field.field_id]   = r.value;
         }
       }
     }
@@ -131,13 +133,19 @@ export class CalculationEngine {
   // ── Private helpers ────────────────────────────────────────────────────────
 
   async evaluateFormula(formula, outputs, vars) {
+    // UPDATED: Create namespace prefix
+    const namespace = formula.name.toLowerCase().replace(/\s+/g, '_');
+
     if (outputs.length === 0) {
       const value = this.evalExpr(formula.expression, vars, formula);
       const unit  = await this.repo.getUnit(formula.output_unit_id);
+      const key   = formula.name.toLowerCase().replace(/\s+/g, '_');
+      
       return [{
         formula_id:      formula.formula_id,
         formula_version: formula.version,
-        output_key:      formula.name.toLowerCase().replace(/\s+/g, '_'),
+        output_key:      key,
+        namespaced_key:  `${namespace}.${key}`, // Inject namespace
         output_label:    formula.name,
         value:           this.r4(value),
         unit_symbol:     unit.symbol,
@@ -149,10 +157,12 @@ export class CalculationEngine {
       const expr  = out.expression ?? formula.expression;
       const value = this.evalExpr(expr, vars, formula);
       const unit  = await this.repo.getUnit(out.output_unit_id);
+      
       results.push({
         formula_id:      formula.formula_id,
         formula_version: formula.version,
         output_key:      out.output_key,
+        namespaced_key:  `${namespace}.${out.output_key}`, // Inject namespace
         output_label:    out.output_label,
         value:           this.r4(value),
         unit_symbol:     unit.symbol,

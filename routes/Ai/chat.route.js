@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import authenticate from '../../middelwares/authenticate.js';
-import checkUserExists from '../../middelwares/checkUserExists.js';
-import checkSubscription from '../../middelwares/checkSubscription.js';
-import checkUsage from '../../middelwares/checkUsage.js';
-import { rateLimit } from '../../middelwares/rateLimi.js';
-import { validate } from '../../middelwares/validate.js';
+import authenticate from '../../middlewares/authenticate.js';
+import checkUserExists from '../../middlewares/checkUserExists.js';
+import checkSubscription from '../../middlewares/checkSubscription.js';
+import checkUsage from '../../middlewares/checkUsage.js';
+import { rateLimit } from '../../middlewares/rateLimit.js';
+import { validate } from '../../middlewares/validate.js';
 import {
   getQuestionsByLocationSchema,
   getAnswerByQuestionIdSchema,

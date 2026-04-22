@@ -10,6 +10,14 @@ export const createPlanSchema = z.object({
   price: z.number(),
   duration: z.number(),
   plan_type_id: z.string(),
+  features: z
+    .array(
+      z.object({
+        key: z.string().min(1),
+        value: z.string().min(1),
+      })
+    )
+    .optional(),
 });
 
 // -----------------------------

@@ -3,6 +3,13 @@ import * as planService  from '../../services/auth/plan.service.js';
 import * as extraService from '../../services/auth/plan_extra.service.js';
 import { ok, handleError, notFound } from '../../utils/http.js';
 
+/** Pick the right language from a { message_en, message_ar } service result. */
+function resolveMessage(res, data) {
+  if (!data || typeof data === 'string') return data;
+  const lang = res.locals?.lang || 'en';
+  return lang === 'ar' ? (data.message_ar || data.message_en) : data.message_en;
+}
+
 // ── Plans ─────────────────────────────────────────────────────────────────────
 
 export const createPlan = async (req, res) => {
@@ -36,8 +43,8 @@ export const updatePlan = async (req, res) => {
 
 export const deletePlan = async (req, res) => {
   try {
-    await extraService.deletePlan(req.params.id);
-    ok(res, { deleted: true });
+    const result = await extraService.deletePlan(req.params.id);
+    ok(res, { deleted: true, message: resolveMessage(res, result) });
   } catch (err) { handleError(res, err); }
 };
 
@@ -71,14 +78,20 @@ export const updatePlanType = async (req, res) => {
   try {
     const dto  = PlanTypeSchema.partial().parse(req.body);
     const data = await extraService.updatePlanType(req.params.typeId, dto);
-    if (!data) return notFound(res, `PlanType ${req.params.typeId} not found`);
+    const lang = res.locals?.lang || 'en';
+    if (!data) return notFound(
+      res,
+      `PlanType ${req.params.typeId} not found`,
+      `نوع الخطة ${req.params.typeId} غير موجود`
+    );
     ok(res, data);
   } catch (err) { handleError(res, err); }
 };
 
 export const deletePlanType = async (req, res) => {
   try {
-    await extraService.deletePlanType(req.params.typeId);
-    ok(res, { deleted: true });
+    const result = await extraService.deletePlanType(req.params.typeId);
+    ok(res, { deleted: true, message: resolveMessage(res, result) });
   } catch (err) { handleError(res, err); }
 };
+

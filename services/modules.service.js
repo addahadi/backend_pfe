@@ -32,7 +32,7 @@ export async function getUnits() {
 export async function getAdminTree() {
   const rows = await sql`
     SELECT category_id, parent_id, category_level,
-           name_en, name_ar, icon, is_active, sort_order
+           name_en, name_ar, description_en, description_ar, icon, is_active, sort_order
     FROM   categories
     ORDER  BY sort_order, name_en
   `;

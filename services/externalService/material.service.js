@@ -30,7 +30,7 @@ export async function getAllMaterials({ search = '', categoryId = '', page = 1, 
         rc.unit_id,
         u.symbol   AS unit_symbol,
         rc.formula_id,
-        f.name     AS formula_name,
+        COALESCE(f.name_en, f.name_ar, 'Unnamed Formula') AS formula_name,
         rc.material_type,
         rc.unit_price_usd,
         rc.min_price_usd,
@@ -66,7 +66,6 @@ export async function createMaterial(dto) {
     default_waste_factor = 0,
   } = dto;
 
-  console.log(dto)
   // Derive category_id from formula
   const [formulaRow] = await sql`
     SELECT formula_id, category_id FROM formulas WHERE formula_id = ${formula_id} AND formula_type = 'MATERIAL'
@@ -74,7 +73,6 @@ export async function createMaterial(dto) {
   if (!formulaRow) throw new ValidationError('Formula not found or is not a MATERIAL formula');
 
   const category_id = formulaRow.category_id;
-  console.log(category_id)
 
   const [row] = await sql`
     INSERT INTO resource_catalog
@@ -90,7 +88,11 @@ export async function createMaterial(dto) {
 
   // Return with joins
   const [joined] = await sql`
-    SELECT rc.*, c.name_en AS category_name, u.symbol AS unit_symbol, f.name AS formula_name
+    SELECT
+      rc.*,
+      c.name_en AS category_name,
+      u.symbol  AS unit_symbol,
+      COALESCE(f.name_en, f.name_ar, 'Unnamed Formula') AS formula_name
     FROM   resource_catalog rc
     LEFT JOIN categories c ON c.category_id = rc.category_id
     LEFT JOIN units      u ON u.unit_id      = rc.unit_id
@@ -134,7 +136,11 @@ export async function updateMaterial(material_id, dto) {
   if (!row) throw new NotFoundError(`Material ${material_id} not found`);
 
   const [joined] = await sql`
-    SELECT rc.*, c.name_en AS category_name, u.symbol AS unit_symbol, f.name AS formula_name
+    SELECT
+      rc.*,
+      c.name_en AS category_name,
+      u.symbol  AS unit_symbol,
+      COALESCE(f.name_en, f.name_ar, 'Unnamed Formula') AS formula_name
     FROM   resource_catalog rc
     LEFT JOIN categories c ON c.category_id = rc.category_id
     LEFT JOIN units      u ON u.unit_id      = rc.unit_id
@@ -156,10 +162,16 @@ export async function deleteMaterial(material_id) {
 
 export async function getMaterialFormulas() {
   return sql`
-    SELECT f.formula_id, f.name, f.category_id, c.name_en AS category_name
+    SELECT
+      f.formula_id,
+      COALESCE(f.name_en, f.name_ar, 'Unnamed Formula') AS name,
+      f.name_en,
+      f.name_ar,
+      f.category_id,
+      c.name_en AS category_name
     FROM   formulas f
     JOIN   categories c ON c.category_id = f.category_id
     WHERE  f.formula_type = 'MATERIAL'
-    ORDER  BY c.name_en, f.name
+    ORDER  BY c.name_en, COALESCE(f.name_en, f.name_ar, 'Unnamed Formula')
   `;
 }

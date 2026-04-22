@@ -11,12 +11,28 @@ Handles HTTP request.
 import * as authService from '../../services/auth/auth.service.js';
 import { ok, handleError } from '../../utils/http.js';
 
+/**
+ * Resolve a bilingual message object (or plain string) to a single string
+ * based on the language stored in res.locals.lang.
+ *
+ * Service functions return:
+ *   { message_en: '...', message_ar: '...' }
+ * This helper picks the right one so the JSON sent to the client always has
+ * a plain `message` string.
+ *
+ * @param {import('express').Response} res
+ * @param {{ message_en: string, message_ar: string } | string} data
+ * @returns {string}
+ */
+function resolveMessage(res, data) {
+  if (typeof data === 'string') return data;
+  const lang = res.locals?.lang || 'en';
+  return lang === 'ar' ? (data.message_ar || data.message_en) : data.message_en;
+}
+
 export const register = async (req, res) => {
   try {
-    // call service logic
     const result = await authService.register(req.body);
-
-    // send response
     ok(res, result, 201);
   } catch (error) {
     handleError(res, error);
@@ -31,12 +47,8 @@ route و service
 */
 export const login = async (req, res) => {
   try {
-    // ✅ نخرج البيانات من req.body
     const { email, password } = req.body;
-
-    // إرسال البيانات إلى service
     const result = await authService.login({ email, password });
-    // إرسال البيانات إلى service
     ok(res, result);
   } catch (error) {
     handleError(res, error);
@@ -47,7 +59,6 @@ export const refresh = async (req, res) => {
   try {
     console.log(req.body);
     const result = await authService.refresh(req.body.refreshToken);
-
     ok(res, result);
   } catch (error) {
     handleError(res, error);
@@ -56,7 +67,7 @@ export const refresh = async (req, res) => {
 
 export const verify = (req, res) => {
   ok(res, {
-    message: 'Token valid',
+    message: res.locals.lang === 'ar' ? 'الرمز صالح' : 'Token valid',
     user: req.user,
   });
 };
@@ -69,14 +80,14 @@ export const getMe = async (req, res) => {
     handleError(res, error);
   }
 };
+
 //logout
 export const logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;
-
     const result = await authService.logout(refreshToken);
-
-    ok(res, result);
+    // result is { message_en, message_ar } — pick the right one
+    ok(res, { message: resolveMessage(res, result) });
   } catch (error) {
     handleError(res, error);
   }
@@ -90,7 +101,7 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const result = await authService.forgotPassword({ email });
-    ok(res, result);
+    ok(res, { message: resolveMessage(res, result) });
   } catch (error) {
     handleError(res, error);
   }
@@ -103,7 +114,7 @@ export const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.query;
     const result = await authService.verifyResetToken({ token });
-    ok(res, result);
+    ok(res, { message: resolveMessage(res, result) });
   } catch (error) {
     handleError(res, error);
   }
@@ -116,7 +127,7 @@ export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     const result = await authService.resetPassword({ token, newPassword });
-    ok(res, result);
+    ok(res, { message: resolveMessage(res, result) });
   } catch (error) {
     handleError(res, error);
   }

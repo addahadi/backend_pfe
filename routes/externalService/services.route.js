@@ -1,7 +1,7 @@
 import express from 'express';
 import { getAllServices, addService, updateService, deleteService } from '../../controllers/externalService/service.controller.js';
-import authenticate from '../../middelwares/authenticate.js';
-import { requireRole } from '../../middelwares/reaquireRole.js';
+import authenticate from '../../middlewares/authenticate.js';
+import { requireRole } from '../../middlewares/requireRole.js';
 
 const router = express.Router();
 
