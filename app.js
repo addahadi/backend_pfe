@@ -6,16 +6,16 @@ import errorHandler from './middlewares/error.js';
 import { langMiddleware } from './middlewares/lang.middleware.js';
 
 // Auth routes
-import authRoutes         from './routes/auth/auth.route.js';
-import planRoutes         from './routes/auth/plans.routes.js';
+import authRoutes from './routes/auth/auth.route.js';
+import planRoutes from './routes/auth/plans.routes.js';
 import subscriptionRoutes from './routes/auth/subscription.route.js';
-import settingRoutes      from './routes/auth/settings.js';
+import settingRoutes from './routes/auth/settings.js';
 
 // External service routes
 import materialRoutes from './routes/externalService/materials.routes.js';
-import serviceRoutes  from './routes/externalService/services.route.js';
+import serviceRoutes from './routes/externalService/services.route.js';
 
-import unitsRouter from './routes/units.routes.js'
+import unitsRouter from './routes/units.routes.js';
 // Estimation module
 import estimationRoutes from './routes/calculation/routes.js';
 
@@ -27,6 +27,10 @@ import modulesRouter from './routes/modules.routes.js';
 
 // Admin dashboard + subscribers
 import adminRouter from './routes/admin.routes.js';
+
+// ─── Blogger ────────────────────────────────────────────
+import blogRoutes from './routes/blog/blog.routes.js';
+import uploadRoutes from './routes/blog/upload.routes.js';
 
 const app = express();
 
@@ -46,7 +50,7 @@ app.use('/api/settings', settingRoutes);
 
 // ─── External services ────────────────────────────────────────────────────────
 app.use('/api/materials', materialRoutes);
-app.use('/api/services',  serviceRoutes);
+app.use('/api/services', serviceRoutes);
 
 // ─── Estimation engine ────────────────────────────────────────────────────────
 app.use('/api', estimationRoutes);
@@ -60,6 +64,9 @@ app.use('/api/units', unitsRouter);
 
 // ─── Admin: dashboard stats + subscribers ─────────────────────────────────────
 app.use('/api/admin', adminRouter);
+
+app.use('/api', blogRoutes);
+app.use('/api', uploadRoutes);
 
 // ─── Error handler (must be last) ────────────────────────────────────────────
 app.use(errorHandler);

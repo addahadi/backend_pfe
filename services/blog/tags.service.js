@@ -1,0 +1,55 @@
+import sql from '../../config/database.js';
+import { AppError } from '../../utils/AppError.js';
+
+// ─── List All Tags ────────────────────────────────────────────────────────────
+export const getTags = async () => {
+  // Count usage from article_tags join since there is no `count` column on tags
+  const rows = await sql`
+    SELECT
+      t.tag_id,
+      t.name_en,
+      t.name_ar,
+      COUNT(art.article_id) AS count
+    FROM tags t
+    LEFT JOIN article_tags art ON t.tag_id = art.tag_id
+    GROUP BY t.tag_id, t.name_en, t.name_ar
+    ORDER BY count DESC, t.name_en ASC
+  `;
+  return { data: rows };
+};
+
+// ─── Create Tag ───────────────────────────────────────────────────────────────
+export const createTag = async (name_en, name_ar) => {
+  if (!name_en?.trim() || !name_ar?.trim()) {
+    throw new AppError('VALIDATION_ERROR', 400, 'Both English and Arabic tag names are required');
+  }
+
+  const [result] = await sql`
+    INSERT INTO tags (name_en, name_ar)
+    VALUES (${name_en.trim()}, ${name_ar.trim()})
+    RETURNING tag_id, name_en, name_ar, created_at
+  `;
+
+  return result;
+};
+
+// ─── Delete Tag ───────────────────────────────────────────────────────────────
+export const deleteTag = async (tagId) => {
+  const tag = await sql`SELECT tag_id FROM tags WHERE tag_id = ${tagId}`;
+  if (!tag.length) {
+    throw new AppError('TAG_NOT_FOUND', 404, 'Tag not found');
+  }
+
+  const [usage] = await sql`
+    SELECT COUNT(*) AS count FROM article_tags WHERE tag_id = ${tagId}
+  `;
+  if (Number(usage.count) > 0) {
+    throw new AppError(
+      'TAG_IN_USE',
+      400,
+      `Cannot delete tag. It is used in ${usage.count} article(s).`
+    );
+  }
+
+  await sql`DELETE FROM tags WHERE tag_id = ${tagId}`;
+};
