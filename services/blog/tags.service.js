@@ -21,7 +21,7 @@ export const getTags = async () => {
 // ─── Create Tag ───────────────────────────────────────────────────────────────
 export const createTag = async (name_en, name_ar) => {
   if (!name_en?.trim() || !name_ar?.trim()) {
-    throw new AppError('VALIDATION_ERROR', 400, 'Both English and Arabic tag names are required');
+    throw new AppError( ' tag names are required','حقل مطلوب','VALIDATION_ERROR', 400);
   }
 
   const [result] = await sql`
@@ -37,7 +37,7 @@ export const createTag = async (name_en, name_ar) => {
 export const deleteTag = async (tagId) => {
   const tag = await sql`SELECT tag_id FROM tags WHERE tag_id = ${tagId}`;
   if (!tag.length) {
-    throw new AppError('TAG_NOT_FOUND', 404, 'Tag not found');
+    throw new AppError('Tag not found','غير موجود','TAG_NOT_FOUND', 404 );
   }
 
   const [usage] = await sql`
