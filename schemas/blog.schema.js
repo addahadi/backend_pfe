@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const createArticleSchema = z.object({
   title_en: z.string().min(3).max(200),
   title_ar: z.string().min(3).max(200),
-  article_type_id: z.string().uuid().optional(),
+  article_type_id: z.string().uuid(),
   excerpt_en: z.string().max(200).optional(),
   excerpt_ar: z.string().max(200).optional(),
   cover_img: z.string().url().optional(),
@@ -18,7 +18,7 @@ export const createArticleSchema = z.object({
 export const updateArticleSchema = z.object({
   title_en: z.string().min(3).max(200).optional(),
   title_ar: z.string().min(3).max(200).optional(),
-  article_type_id: z.string().uuid().optional(),
+  article_type_id: z.string().uuid(),
   excerpt_en: z.string().max(200).optional(),
   excerpt_ar: z.string().max(200).optional(),
   cover_img: z.string().url().optional(),
@@ -32,6 +32,7 @@ export const updateArticleSchema = z.object({
 export const saveDraftSchema = z.object({
   title_en: z.string().optional(),
   title_ar: z.string().optional(),
+  article_type_id: z.string().uuid(),
   excerpt_en: z.string().max(200).optional(),
   excerpt_ar: z.string().max(200).optional(),
   content_en: z.any().optional(),

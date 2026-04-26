@@ -5,7 +5,12 @@ import { AppError } from '../../utils/AppError.js';
 export const toggleLike = async (userId, articleId) => {
   const article = await sql`SELECT article_id FROM articles WHERE article_id = ${articleId}`;
   if (!article.length) {
-    throw new AppError('ARTICLE_NOT_FOUND', 404, 'Article not found');
+    throw new AppError(
+  'Article not found',
+  'المقال غير موجود',
+  'ARTICLE_NOT_FOUND',
+  404
+);
   }
 
   const existing = await sql`
@@ -29,7 +34,12 @@ export const toggleLike = async (userId, articleId) => {
 export const toggleSave = async (userId, articleId) => {
   const article = await sql`SELECT article_id FROM articles WHERE article_id = ${articleId}`;
   if (!article.length) {
-    throw new AppError('ARTICLE_NOT_FOUND', 404, 'Article not found');
+    throw new AppError(
+  'Article not found',
+  'المقال غير موجود',
+  'ARTICLE_NOT_FOUND',
+  404
+);
   }
 
   const existing = await sql`
