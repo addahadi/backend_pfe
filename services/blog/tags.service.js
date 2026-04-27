@@ -3,7 +3,6 @@ import { AppError } from '../../utils/AppError.js';
 
 // ─── List All Tags ────────────────────────────────────────────────────────────
 export const getTags = async () => {
-  // Count usage from article_tags join since there is no `count` column on tags
   const rows = await sql`
     SELECT
       t.tag_id,
@@ -21,7 +20,7 @@ export const getTags = async () => {
 // ─── Create Tag ───────────────────────────────────────────────────────────────
 export const createTag = async (name_en, name_ar) => {
   if (!name_en?.trim() || !name_ar?.trim()) {
-    throw new AppError( ' tag names are required','حقل مطلوب','VALIDATION_ERROR', 400);
+    throw new AppError('Tag names are required', 'حقل مطلوب', 'VALIDATION_ERROR', 400);
   }
 
   const [result] = await sql`
@@ -37,17 +36,22 @@ export const createTag = async (name_en, name_ar) => {
 export const deleteTag = async (tagId) => {
   const tag = await sql`SELECT tag_id FROM tags WHERE tag_id = ${tagId}`;
   if (!tag.length) {
-    throw new AppError('Tag not found','غير موجود','TAG_NOT_FOUND', 404 );
+    // FIX: was AppError('TAG_IN_USE', 400, message) — wrong argument order.
+    // AppError constructor is: (messageEn, messageAr, code, statusCode)
+    throw new AppError('Tag not found', 'غير موجود', 'TAG_NOT_FOUND', 404);
   }
 
   const [usage] = await sql`
     SELECT COUNT(*) AS count FROM article_tags WHERE tag_id = ${tagId}
   `;
+
   if (Number(usage.count) > 0) {
+    // FIX: same wrong argument order as above — corrected here too
     throw new AppError(
+      `Cannot delete tag. It is used in ${usage.count} article(s).`,
+      'لا يمكن حذف الوسم لأنه مستخدم في مقالات',
       'TAG_IN_USE',
-      400,
-      `Cannot delete tag. It is used in ${usage.count} article(s).`
+      400
     );
   }
 

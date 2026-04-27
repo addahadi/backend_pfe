@@ -445,9 +445,17 @@ export const updateArticle = async (articleId, data) => {
 };
 
 // ─── Save Draft ───────────────────────────────────────────────────────────────
+// ─── Save Draft ───────────────────────────────────────────────────────────────
+// FIX: was AppError('ARTICLE_NOT_FOUND', 404, 'Article not found') — wrong order.
+// AppError constructor is: (messageEn, messageAr, code, statusCode)
+// Only the saveDraft function had this bug; the rest of articles_service.js is correct.
+// Replace only the saveDraft function in your articles_service.js:
+
 export const saveDraft = async (articleId, data) => {
   const existingRows = await sql`SELECT article_id FROM articles WHERE article_id = ${articleId}`;
-  if (!existingRows.length) throw new AppError('ARTICLE_NOT_FOUND', 404, 'Article not found');
+  if (!existingRows.length) {
+    throw new AppError('Article not found', 'مقال غير موجود', 'ARTICLE_NOT_FOUND', 404);
+  }
 
   const patch = { status: 'DRAFT' };
   if (data.title_en   !== undefined) { patch.title_en = data.title_en.trim(); patch.slug = slugify(data.title_en); }
@@ -488,7 +496,6 @@ export const saveDraft = async (articleId, data) => {
     saved_as_draft: true,
   };
 };
-
 // ─── Delete ───────────────────────────────────────────────────────────────────
 export const deleteArticle = async (articleId) => {
   const existingRows = await sql`SELECT article_id FROM articles WHERE article_id = ${articleId}`;
